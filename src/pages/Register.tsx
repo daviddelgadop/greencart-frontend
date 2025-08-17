@@ -16,6 +16,7 @@ export default function Register() {
     confirmPassword: '',
     date_of_birth: '',
     type: defaultType as 'customer' | 'producer',
+    public_display_name: '',
     acceptTerms: false
   })
 
@@ -62,6 +63,7 @@ export default function Register() {
         formData.password,
         formData.type,
         formData.date_of_birth,
+        formData.public_display_name
       )
       navigate('/')
     } catch (err) {
@@ -83,7 +85,6 @@ export default function Register() {
     <div className="min-h-screen bg-pale-yellow/20 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full">
         <div className="bg-white rounded-2xl shadow-lg p-8">
-          {/* Logo */}
           <div className="text-center mb-8">
             <img src={logo_min_circle} alt="GreenCart logo" className="h-16 w-auto mx-auto mb-4" />
             <h1 className="text-2xl font-bold text-dark-green">Créer un compte</h1>
@@ -97,7 +98,6 @@ export default function Register() {
               </div>
             )}
 
-            {/* Account Type */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Type de compte</label>
               <select
@@ -111,7 +111,6 @@ export default function Register() {
               </select>
             </div>
 
-            {/* First Name */}
             <div>
               <label htmlFor="first_name" className="block text-sm font-medium text-gray-700 mb-2">Prénom</label>
               <div className="relative">
@@ -129,7 +128,6 @@ export default function Register() {
               </div>
             </div>
 
-            {/* Last Name */}
             <div>
               <label htmlFor="last_name" className="block text-sm font-medium text-gray-700 mb-2">Nom</label>
               <div className="relative">
@@ -147,7 +145,19 @@ export default function Register() {
               </div>
             </div>
 
-            {/* Email */}
+            <div>
+              <label htmlFor="public_display_name" className="block text-sm font-medium text-gray-700 mb-2">Nom affiché public</label>
+              <input
+                id="public_display_name"
+                name="public_display_name"
+                type="text"
+                value={formData.public_display_name}
+                onChange={handleInputChange}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-green focus:border-transparent"
+                placeholder="Nom affiché"
+              />
+            </div>
+
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">Adresse email</label>
               <div className="relative">
@@ -165,7 +175,6 @@ export default function Register() {
               </div>
             </div>
 
-            {/* Password */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">Mot de passe</label>
               <div className="relative">
@@ -190,7 +199,6 @@ export default function Register() {
               </div>
             </div>
 
-            {/* Confirm Password */}
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">Confirmer le mot de passe</label>
               <div className="relative">
@@ -215,7 +223,6 @@ export default function Register() {
               </div>
             </div>
 
-            {/* Date de naissance */}
             <div>
               <label htmlFor="date_of_birth" className="block text-sm font-medium text-gray-700 mb-2">
                 Date de naissance
@@ -231,7 +238,6 @@ export default function Register() {
               />
             </div>
 
-            {/* Terms */}
             <div className="flex items-start">
               <input
                 id="acceptTerms"
@@ -253,7 +259,6 @@ export default function Register() {
               </label>
             </div>
 
-            {/* Submit */}
             <button
               type="submit"
               disabled={isLoading}

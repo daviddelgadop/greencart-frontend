@@ -3,22 +3,19 @@ frontend:
   phases:
     preBuild:
       commands:
-        # Installer Node.js 20 pour éviter les erreurs de build
         - nvm install 20
         - nvm use 20
         - node -v
-        # Installer les dépendances à partir du lockfile
-        - npm ci
+        - npm ci --no-audit --no-fund
     build:
       commands:
-        # Construire l'application (Vite)
         - npm run build
+        - echo "Build finished, listing dist:"
+        - ls -la dist || true
   artifacts:
-    # Dossier généré par Vite après la compilation
     baseDirectory: dist
     files:
       - '**/*'
   cache:
     paths:
-      # Mettre en cache les dépendances npm pour accélérer les builds suivants
       - node_modules/**/*

@@ -135,17 +135,6 @@ export default function Login() {
             </button>
           </form>
 
-          <div className="mt-6 p-4 bg-pale-yellow/30 rounded-lg">
-            <p className="text-sm font-medium text-dark-green mb-2">Comptes de démonstration :</p>
-            <div className="space-y-2 text-sm">
-              <div>
-                <strong>Client :</strong> client@demo.fr / demo123
-              </div>
-              <div>
-                <strong>Producteur :</strong> producer@demo.fr / demo123
-              </div>
-            </div>
-          </div>
 
           <div className="mt-8 text-center">
             <p className="text-gray-600">

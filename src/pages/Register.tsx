@@ -18,13 +18,13 @@ function validatePassword(
   pwd: string,
   context: { email: string; firstName: string; lastName: string }
 ) {
-  const checks: PasswordCheck[] = [
-    { label: 'At least 12 characters', ok: pwd.length >= 12 },
-    { label: 'Contains lowercase letter', ok: /[a-z]/.test(pwd) },
-    { label: 'Contains uppercase letter', ok: /[A-Z]/.test(pwd) },
-    { label: 'Contains a digit', ok: /\d/.test(pwd) },
-    { label: 'Contains a symbol', ok: /[^A-Za-z0-9]/.test(pwd) },
-    { label: 'No spaces', ok: !/\s/.test(pwd) },
+  const checks: PasswordCheck[] = [ 
+    { label: 'Au moins 12 caractères', ok: pwd.length >= 12 },
+    { label: 'Contient une lettre minuscule', ok: /[a-z]/.test(pwd) },
+    { label: 'Contient une lettre majuscule', ok: /[A-Z]/.test(pwd) },
+    { label: 'Contient un chiffre', ok: /\d/.test(pwd) },
+    { label: 'Contient un symbole', ok: /[^A-Za-z0-9]/.test(pwd) },
+    { label: 'Aucun espace', ok: !/\s/.test(pwd) },
   ]
 
   const localPart = context.email.split('@')[0] || ''

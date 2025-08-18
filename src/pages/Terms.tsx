@@ -134,7 +134,6 @@ export default function Terms() {
                   <li>Cartes bancaires (Visa, Mastercard, American Express)</li>
                   <li>PayPal</li>
                   <li>Virement bancaire (pour les commandes professionnelles)</li>
-                  <li>Chèques cadeaux GreenCart</li>
                 </ul>
               </div>
 
@@ -177,17 +176,7 @@ export default function Terms() {
                       <tr>
                         <td className="border border-gray-200 px-4 py-2">Standard</td>
                         <td className="border border-gray-200 px-4 py-2">2-3 jours ouvrés</td>
-                        <td className="border border-gray-200 px-4 py-2">Gratuit dès 30€</td>
-                      </tr>
-                      <tr>
-                        <td className="border border-gray-200 px-4 py-2">Express</td>
-                        <td className="border border-gray-200 px-4 py-2">24h</td>
-                        <td className="border border-gray-200 px-4 py-2">9,90€</td>
-                      </tr>
-                      <tr>
-                        <td className="border border-gray-200 px-4 py-2">Point relais</td>
-                        <td className="border border-gray-200 px-4 py-2">2-4 jours ouvrés</td>
-                        <td className="border border-gray-200 px-4 py-2">3,90€</td>
+                        <td className="border border-gray-200 px-4 py-2">4,90€ (Gratuit dès 30€)</td>
                       </tr>
                     </tbody>
                   </table>

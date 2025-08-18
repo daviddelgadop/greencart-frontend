@@ -129,21 +129,21 @@ export default function Home() {
               <div className="bg-dark-green text-pale-yellow w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Leaf className="w-8 h-8" />
               </div>
-              <h3 className="text-3xl font-bold text-dark-green mb-2">1,200+</h3>
+              <h3 className="text-3xl font-bold text-dark-green mb-2">1,000+</h3>
               <p className="text-gray-600">Tonnes sauvées du gaspillage</p>
             </div>
             <div className="animate-slide-up">
               <div className="bg-orange-beige text-white w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Users className="w-8 h-8" />
               </div>
-              <h3 className="text-3xl font-bold text-dark-green mb-2">500+</h3>
+              <h3 className="text-3xl font-bold text-dark-green mb-2">30+</h3>
               <p className="text-gray-600">Producteurs partenaires</p>
             </div>
             <div className="animate-slide-up">
               <div className="bg-medium-brown text-pale-yellow w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                 <ShoppingCart className="w-8 h-8" />
               </div>
-              <h3 className="text-3xl font-bold text-dark-green mb-2">25,000+</h3>
+              <h3 className="text-3xl font-bold text-dark-green mb-2">2,000+</h3>
               <p className="text-gray-600">Clients satisfaits</p>
             </div>
           </div>

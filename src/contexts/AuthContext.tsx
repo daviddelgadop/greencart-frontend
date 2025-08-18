@@ -9,18 +9,21 @@ interface User {
   type: 'customer' | 'producer'
   date_of_birth: string
   phone: string
-  avatar?: string
+  avatar?: string | null
+  avatar_url?: string | null
   public_display_name: string
   main_address: string
   street_number: string
   description_utilisateur: string
   years_of_experience?: number
   is_staff: boolean
+  updated_at?: string
 }
 
 interface AuthState {
   user: User | null
   isLoading: boolean
+  avatar_version: number
 }
 
 interface AuthContextType {
@@ -39,6 +42,8 @@ interface AuthContextType {
   ) => Promise<void>
   logout: () => void
   setUser: (user: User | null) => void
+  refreshUser: () => Promise<void>
+  avatarVersion: number
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -58,28 +63,66 @@ function rotateGuestKey(): string {
   return key
 }
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [authState, setAuthState] = useState<AuthState>({ user: null, isLoading: true })
+function normalizeUser(u: User | null): User | null {
+  if (!u) return u
+  const avatar = (u.avatar_url ?? u.avatar) ?? null
+  return { ...u, avatar, avatar_url: avatar }
+}
 
-  const setUser = (user: User | null) => setAuthState(prev => ({ ...prev, user }))
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [authState, setAuthState] = useState<AuthState>({
+    user: null,
+    isLoading: true,
+    avatar_version: 0,
+  })
+
+  const writeLocalUser = (u: User | null) => {
+    if (u) {
+      localStorage.setItem('user', JSON.stringify(u))
+    } else {
+      localStorage.removeItem('user')
+    }
+  }
+
+  const setUser = (user: User | null) => {
+    const normalized = normalizeUser(user)
+    setAuthState(prev => ({
+      ...prev,
+      user: normalized,
+      avatar_version: normalized ? Date.now() : prev.avatar_version,
+    }))
+    writeLocalUser(normalized)
+    window.dispatchEvent(new CustomEvent('auth:user-updated', { detail: { user: normalized } }))
+  }
+
+  const refreshUser = async () => {
+    const token = localStorage.getItem('access')
+    if (!token) {
+      setAuthState({ user: null, isLoading: false, avatar_version: 0 })
+      return
+    }
+    try {
+      const user = await http.get<User>('/api/me/', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const normalized = normalizeUser(user)
+      setAuthState(prev => ({
+        ...prev,
+        user: normalized,
+        isLoading: false,
+        avatar_version: Date.now(),
+      }))
+      writeLocalUser(normalized)
+    } catch {
+      logout()
+    }
+  }
 
   useEffect(() => {
-    const fetchUser = async () => {
-      const token = localStorage.getItem('access')
-      if (!token) {
-        setAuthState({ user: null, isLoading: false })
-        return
-      }
-      try {
-        const user = await http.get<User>('/api/me/', {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-        setAuthState({ user, isLoading: false })
-      } catch {
-        logout()
-      }
+    const init = async () => {
+      await refreshUser()
     }
-    fetchUser()
+    void init()
   }, [])
 
   const login = async (email: string, password: string) => {
@@ -96,7 +139,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const user = await http.get<User>('/api/me/', {
         headers: { Authorization: `Bearer ${data.access}` }
       })
-      localStorage.setItem('user', JSON.stringify(user))
+
+      const normalized = normalizeUser(user)
+      writeLocalUser(normalized)
 
       const guestKey = getOrCreateGuestKey()
       try {
@@ -112,7 +157,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         )
       } catch {}
 
-      setAuthState({ user, isLoading: false })
+      setAuthState({ user: normalized, isLoading: false, avatar_version: Date.now() })
     } catch (e) {
       logout()
       throw e
@@ -147,10 +192,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('user')
 
     const newKey = rotateGuestKey()
-
     window.dispatchEvent(new CustomEvent('cart:reset', { detail: { reason: 'logout', sessionKey: newKey } }))
 
-    setAuthState({ user: null, isLoading: false })
+    setAuthState({ user: null, isLoading: false, avatar_version: 0 })
   }
 
   const contextValue: AuthContextType = {
@@ -161,6 +205,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     register,
     logout,
     setUser,
+    refreshUser,
+    avatarVersion: authState.avatar_version,
   }
 
   return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>

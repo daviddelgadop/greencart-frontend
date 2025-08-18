@@ -12,7 +12,7 @@ interface Props {
 }
 
 export default function ProfileTab({ onShowPasswordConfirm, password, onPasswordValidated, active }: Props) {
-  const { user, setUser } = useAuth()
+  const { user, setUser, avatarVersion } = useAuth()
 
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
@@ -28,13 +28,18 @@ export default function ProfileTab({ onShowPasswordConfirm, password, onPassword
   const [passwordChecked, setPasswordChecked] = useState(false)
 
   const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '')
+  const isAbsolute = (u: string) => /^https?:\/\//i.test(u) || u.startsWith('blob:')
 
-  const resolveMediaUrl = (u?: string | null, bustCache = true): string | null => {
+  const resolveMediaUrl = (u?: string | null): string | null => {
     if (!u) return null
-    if (u.startsWith('blob:')) return u
-    if (/^https?:\/\//i.test(u)) return u
-    const abs = `${API_BASE}/${u.replace(/^\/+/, '')}`
-    return bustCache ? `${abs}?v=${Date.now()}` : abs
+    if (isAbsolute(u)) return u
+    return `${API_BASE}/${u.replace(/^\/+/, '')}`
+  }
+
+  const withBust = (u: string | null, v: number): string | null => {
+    if (!u) return null
+    const sep = u.includes('?') ? '&' : '?'
+    return `${u}${sep}v=${v}`
   }
 
   useEffect(() => {
@@ -46,8 +51,9 @@ export default function ProfileTab({ onShowPasswordConfirm, password, onPassword
     setDateOfBirth(user.date_of_birth?.slice(0, 10) || '')
     setPublicName(user.public_display_name || '')
     setDescription(user.description_utilisateur || '')
-    setExperience(user.years_of_experience?.toString() || '')
-    setAvatarUrl(resolveMediaUrl(user.avatar))
+    setExperience((user as any).years_of_experience?.toString() || '')
+    const initial = (user as any)?.avatar_url ?? (user as any)?.avatar ?? null
+    setAvatarUrl(resolveMediaUrl(initial))
   }, [user])
 
   useEffect(() => {
@@ -55,6 +61,10 @@ export default function ProfileTab({ onShowPasswordConfirm, password, onPassword
       void verifyPassword(password)
     }
   }, [password, passwordChecked, active])
+
+  useEffect(() => {
+    setAvatarUrl(prev => withBust(prev, avatarVersion))
+  }, [avatarVersion])
 
   const formatPhoneFR = (v: string) => v.replace(/(\d{2})(?=\d)/g, '$1 ').trim()
   const unformatPhone = (v: string) => v.replace(/\s+/g, '')
@@ -71,7 +81,7 @@ export default function ProfileTab({ onShowPasswordConfirm, password, onPassword
   }
 
   const handleSaveProfile = async () => {
-    const userId = user?.id
+    const userId = (user as any)?.id
     if (!userId) {
       toast.warning('Non authentifié')
       return
@@ -104,9 +114,13 @@ export default function ProfileTab({ onShowPasswordConfirm, password, onPassword
       await http.patch(`/api/users/${userId}/`, formData)
       toast.success('Profil mis à jour avec succès')
       setPasswordChecked(false)
+
       const me = await http.get('/api/me/')
       setUser(me)
-      setAvatarUrl(resolveMediaUrl(me?.avatar))
+
+      const next = (me as any)?.avatar_url ?? (me as any)?.avatar ?? null
+      setAvatarUrl(withBust(resolveMediaUrl(next), Date.now()))
+      setAvatar(null)
     } catch (e: any) {
       const detail = e?.response?.data?.detail
       toast.error(`Erreur: ${detail || 'Une erreur est survenue.'}`)
@@ -137,7 +151,8 @@ export default function ProfileTab({ onShowPasswordConfirm, password, onPassword
           <div className="w-20 h-20 bg-dark-green rounded-full overflow-hidden flex items-center justify-center">
             {avatarUrl ? (
               <img
-                src={avatarUrl}
+                key={avatarVersion}
+                src={withBust(avatarUrl, avatarVersion) || undefined}
                 alt="Avatar"
                 onError={handleImgError}
                 className="w-full h-full object-cover"
@@ -152,7 +167,7 @@ export default function ProfileTab({ onShowPasswordConfirm, password, onPassword
             </h3>
             <p className="text-gray-600">{email}</p>
             <span className="inline-block bg-pale-yellow text-dark-green px-3 py-1 rounded-full text-sm font-medium mt-2">
-              {user?.type === 'producer' ? 'Producteur' : 'Client'}
+              {(user as any)?.type === 'producer' ? 'Producteur' : 'Client'}
             </span>
           </div>
         </div>

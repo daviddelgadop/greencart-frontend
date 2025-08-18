@@ -1,13 +1,10 @@
-// src/tabs/ProducerDashboardTab.tsx
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { http } from '../lib/api'
 import {
   TrendingUp, Receipt, Users, ShoppingCart, Layers, HeartPulse, Leaf,
-  BarChart3, CreditCard, CalendarRange, MapPin,
+  BarChart3, CreditCard, CalendarRange, MapPin, Star,
   Table as TableIcon, LineChart as LineChartIcon, Layout as BothIcon,
 } from 'lucide-react'
-import jsPDF from 'jspdf'
-import html2canvas from 'html2canvas'
 import { useAuth } from '../contexts/AuthContext'
 import {
   ResponsiveContainer, LineChart, Line, BarChart, Bar,
@@ -16,967 +13,467 @@ import {
 
 type SubTab =
   | 'sales' | 'orders' | 'customers' | 'carts' | 'catalog'
-  | 'health' | 'impact' | 'category' | 'payments' | 'cohorts' | 'geo'
+  | 'health' | 'impact' | 'category' | 'payments' | 'cohorts' | 'geo' | 'reviews'
 
 type Bucket = 'day' | 'week' | 'month'
 type ViewMode = 'table' | 'chart' | 'both'
 
+const DASHBOARD_IS_PRODUCER = import.meta.env.VITE_DASHBOARD_PRODUCER === 'true'
+const BASE = DASHBOARD_IS_PRODUCER ? '/api/producer/analytics' : '/api/admin/analytics'
+
+// helpers
 const asNum = (v: any, d = 0) => (v == null || v === '' || isNaN(Number(v)) ? d : Number(v))
 const fmtEur = (n: number) => `${n.toFixed(2)}€`
-const fmtDate = (s?: string) => (s ? new Date(s).toLocaleString('fr-FR') : '')
-const ascii = (s: string) => s.normalize('NFKD').replace(/[^\x20-\x7E]/g, '')
+const fmtDateTime = (s?: string) => (s ? new Date(s).toLocaleString('fr-FR') : '')
+const fmtDate = (s?: string) => (s ? new Date(s).toLocaleDateString('fr-FR') : '')
 
-// === Roll-up helpers
-type Point = { period: string; revenue?: number; orders?: number; units?: number };
-
-const toDate = (s: string) => new Date(s);
-
-// Semaine ISO 
-function isoWeek(d: Date) {
-  const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-  const dayNum = tmp.getUTCDay() || 7;           // 1..7
-  tmp.setUTCDate(tmp.getUTCDate() + 4 - dayNum); // jueves de esa semana
-  const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
-  return Math.ceil((((tmp.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+const firstDayOfThisMonth = () => {
+  const d = new Date()
+  return new Date(d.getFullYear(), d.getMonth(), 1)
 }
+const lastDayOfThisMonth = () => {
+  const d = new Date()
+  return new Date(d.getFullYear(), d.getMonth() + 1, 0)
+}
+// Local-safe ISO (YYYY-MM-DD)
+const toISO = (d: Date) =>
+  [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-')
 
-// YYYY-Www
 const weekKey = (s: string) => {
-  const d = toDate(s);
-  const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-  const dayNum = tmp.getUTCDay() || 7;
-  tmp.setUTCDate(tmp.getUTCDate() + 4 - dayNum);
-  const y = tmp.getUTCFullYear();
-  const w = isoWeek(d);
-  return `${y}-W${String(w).padStart(2, '0')}`;
-};
-
-// YYYY-MM
+  const d = new Date(s)
+  const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))
+  const dayNum = tmp.getUTCDay() || 7
+  tmp.setUTCDate(tmp.getUTCDate() + 4 - dayNum)
+  const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1))
+  const weekNo = Math.ceil((((tmp.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
+  return `${tmp.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`
+}
 const monthKey = (s: string) => {
-  const d = toDate(s);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-};
+  const d = new Date(s)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
 
-// roll-up
-function rollSeries(series: Point[], bucket: 'day'|'week'|'month'): Point[] {
-  if (bucket === 'day') return series;
-
-  const keyFn = bucket === 'week' ? weekKey : monthKey;
-  const acc: Record<string, { revenue: number; orders: number; units: number }> = {};
-
+type SeriesPoint = { period: string; date?: string; revenue?: number; orders?: number; units?: number }
+function rollSeries(series: SeriesPoint[], bucket: Bucket): SeriesPoint[] {
+  if (!Array.isArray(series)) return []
+  if (bucket === 'day') return series.map(p => ({ ...p, period: p.date || p.period }))
+  const group = new Map<string, { revenue: number; orders: number; units: number }>()
+  const keyFn = bucket === 'week' ? weekKey : monthKey
   for (const p of series) {
-    const k = keyFn(p.period);
-    acc[k] ||= { revenue: 0, orders: 0, units: 0 };
-    acc[k].revenue += Number(p.revenue || 0);
-    acc[k].orders  += Number(p.orders  || 0);
-    acc[k].units   += Number(p.units   || 0);
+    const key = keyFn(p.date || p.period)
+    const g = group.get(key) || { revenue: 0, orders: 0, units: 0 }
+    g.revenue += asNum(p.revenue)
+    g.orders += asNum(p.orders)
+    g.units += asNum(p.units)
+    group.set(key, g)
   }
-
-  return Object.entries(acc)
-    .sort(([a],[b]) => a.localeCompare(b))
-    .map(([period, v]) => ({ period, ...v }));
+  return Array.from(group.entries()).map(([period, v]) => ({ period, revenue: v.revenue, orders: v.orders, units: v.units }))
 }
 
-
-function KpiCard({ title, value, hint }: { title: string; value: React.ReactNode; hint?: string }) {
-  return (
-    <div className="bg-white rounded-lg p-6 shadow-sm">
-      <p className="text-gray-600 text-xs">{title}</p>
-      <p className="text-2xl font-bold text-dark-green leading-tight">{value}</p>
-      {hint ? <p className="text-xs text-green-700 mt-1">{hint}</p> : null}
-    </div>
-  )
-}
-function JsonView({ data }: { data: any }) {
-  return (
-    <pre className="text-xs bg-gray-50 rounded-lg p-4 shadow-sm overflow-auto max-h-[60vh]">
-      {JSON.stringify(data, null, 2)}
-    </pre>
-  )
+function riskWordFR(level?: string | null) {
+  if (!level) return '—'
+  const l = String(level).toUpperCase()
+  if (l === 'OK' || l === 'LOW') return 'Correct'
+  if (l === 'YELLOW' || l === 'MEDIUM') return 'Faible'
+  if (l === 'RED' || l === 'HIGH' || l === 'CRITIQUE') return 'Critique'
+  return '—'
 }
 
 export default function ProducerDashboardTab() {
-
-  const rcKey = (name: string, useBucket = false) =>
-    `${name}-${useBucket ? bucket + '-' : ''}${dateFrom}-${dateTo}-${limit}`;
-
   const { user } = useAuth()
+
+  // routing state
   const [tab, setTab] = useState<SubTab>('sales')
-  const [dateFrom, setDateFrom] = useState<string>(() => {
-    const d = new Date(); d.setMonth(d.getMonth() - 2); return d.toISOString().slice(0, 10)
-  })
-  const [dateTo, setDateTo] = useState<string>(() => new Date().toISOString().slice(0, 10))
   const [bucket, setBucket] = useState<Bucket>('day')
-  const [limit, setLimit] = useState<number>(100)
+  const [geoLevel, setGeoLevel] = useState<'region' | 'department' | 'city'>('region')
   const [viewMode, setViewMode] = useState<ViewMode>('both')
+  const [limit, setLimit] = useState<number>(50)
 
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  // date range: default current month
+  const [dateFrom, setDateFrom] = useState<string>(toISO(firstDayOfThisMonth()))
+  const [dateTo, setDateTo] = useState<string>(toISO(lastDayOfThisMonth()))
+
   const [data, setData] = useState<any>(null)
+  const [loading, setLoading] = useState<boolean>(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const reportRef = useRef<HTMLDivElement>(null)
-  const [exporting, setExporting] = useState(false)
+  const firstLoad = useRef(true)
+  const rcKey = (k: string) => `${k}-${bucket}-${dateFrom}-${dateTo}-${geoLevel}`
 
-  const subTabs: { id: SubTab; label: string; icon: any }[] = [
-    { id: 'sales',    label: 'Ventes',        icon: TrendingUp },
-    { id: 'orders',   label: 'Commandes',     icon: Receipt },
-    { id: 'customers',label: 'Clients',       icon: Users },
-    { id: 'carts',    label: 'Paniers',       icon: ShoppingCart },
-    { id: 'catalog',  label: 'Catalogue',     icon: Layers },
-    { id: 'health',   label: 'Santé',         icon: HeartPulse },
-    { id: 'impact',   label: 'Impact',        icon: Leaf },
-    { id: 'category', label: 'Par catégorie', icon: BarChart3 },
-    { id: 'payments', label: 'Paiements',     icon: CreditCard },
-    { id: 'cohorts',  label: 'Cohortes',      icon: CalendarRange },
-    { id: 'geo',      label: 'Géo',           icon: MapPin },
-  ]
-  const firstRow = subTabs.slice(0, 7)
-  const secondRow = subTabs.slice(7)
-
-  async function fetcher() {
-    setLoading(true); setError(null)
-    try {
-      let url = ''
-      const params: Record<string, any> = { date_from: dateFrom, date_to: dateTo, limit }
-      if (tab === 'sales') { url = '/api/producer/analytics/sales/timeseries/'; params.bucket = bucket }
-      else if (tab === 'orders') { url = '/api/producer/analytics/orders/deep/' }
-      else if (tab === 'customers') { url = '/api/producer/analytics/customers/deep/' }
-      else if (tab === 'carts') { url = '/api/producer/analytics/carts/abandoned/deep/' }
-      else if (tab === 'catalog') { url = '/api/producer/analytics/catalog/deep/' }
-      else if (tab === 'health') { url = '/api/producer/analytics/products/health/' }
-      else if (tab === 'impact') { url = '/api/producer/analytics/impact/' }
-      else if (tab === 'category') { url = '/api/producer/analytics/sales/by-category/deep/'; params.bucket = bucket }
-      else if (tab === 'payments') { url = '/api/producer/analytics/payments/deep/' }
-      else if (tab === 'cohorts') { url = '/api/producer/analytics/cohorts/monthly/' }
-      else if (tab === 'geo') { url = '/api/producer/analytics/geo/deep/' }
-      const res = await http.get(url, { params })
-      setData((res as any)?.data ?? res)
-    } catch (e: any) {
-      setError(e?.response?.data ? JSON.stringify(e.response.data) : 'Erreur de chargement')
-      setData(null)
-    } finally { setLoading(false) }
+  const clampRange = (from: string, to: string) => {
+    if (!from || !to) return { from, to }
+    const f = new Date(from)
+    const t = new Date(to)
+    if (f > t) return { from: to, to }
+    return { from, to }
   }
 
+  const params = useMemo(() => {
+    const q = new URLSearchParams()
+    if (dateFrom) q.set('date_from', dateFrom)
+    if (dateTo) q.set('date_to', dateTo)
+    return q.toString()
+  }, [dateFrom, dateTo])
+
+  const fetchData = useMemo(() => {
+    const urlFor = () => {
+      if (tab === 'sales') return `${BASE}/sales/timeseries/?bucket=${bucket}&${params}`
+      if (tab === 'orders') return `${BASE}/orders/deep/?bucket=${bucket}&${params}`
+      if (tab === 'customers') return `${BASE}/customers/deep/?bucket=${bucket}&${params}`
+      if (tab === 'carts') return `${BASE}/carts/abandoned/deep/?${params}`
+      if (tab === 'catalog') return `${BASE}/catalog/deep/?${params}`
+      if (tab === 'health') return `${BASE}/products/health/?${params}`
+      if (tab === 'impact') return `${BASE}/impact/?bucket=${bucket}&${params}`
+      if (tab === 'category') return `${BASE}/cross/certifications-performance/?${params}`
+      if (tab === 'payments') return `${BASE}/cross/payments-aov-ratings-geo/?${params}`
+      if (tab === 'cohorts') return `${BASE}/cohorts/monthly/?bucket=${bucket}&${params}`
+      if (tab === 'geo') return `${BASE}/geo/deep/?level=${geoLevel}&${params}`
+      if (tab === 'reviews') return `${BASE}/evaluations/deep/?kind=all&bucket=${bucket}&${params}`
+      return ''
+    }
+    return async () => {
+      const url = urlFor()
+      if (!url) return
+      setLoading(true)
+      setError(null)
+      try {
+        const res = await http.get<any>(url)
+        setData(res)
+      } catch {
+        setError('Erreur lors du chargement.')
+        setData(null)
+      } finally {
+        setLoading(false)
+      }
+    }
+  }, [tab, bucket, geoLevel, params])
 
   useEffect(() => {
-    const tid = setTimeout(() => { fetcher() }, 150)
-    return () => clearTimeout(tid)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, dateFrom, dateTo, bucket, limit])
+    fetchData()
+  }, [fetchData])
 
-
-  const onRefresh = () => fetcher()
-
-  function getExportTable(current: SubTab, payload: any, max: number): { headers: string[]; rows: any[]; filename: string } {
-    const take = (arr: any[]) => (Array.isArray(arr) ? arr.slice(0, max) : [])
-    const safe = (obj: any, keys: string[]) => keys.filter(Boolean).map(k => (obj?.[k] !== undefined ? k : '')).filter(Boolean)
-    if (!payload) return { headers: [], rows: [], filename: `report_${current}` }
-    switch (current) {
-      case 'sales': {
-        const series = take(payload?.series || [])
-        const headers = ['period', 'revenue', 'orders', 'units']
-        return { headers, rows: series, filename: 'sales_timeseries' }
-      }
-      case 'orders': {
-        const items = take(Array.isArray(payload) ? payload : payload?.rows || [])
-        const headers = ['id','created_at','status','total_price'] // los que existan
-        return { headers, rows: items, filename: 'orders' }
-      }
-      case 'customers': {
-        const items = take(Array.isArray(payload) ? payload : payload?.rows || [])
-        const headers = ['user_id','orders','spent','first_order','last_order','segment']
-        return { headers, rows: items, filename: 'customers' }
-      }
-      case 'carts': {
-        const items = take(payload?.rows || [])
-        const headers = ['cart_id','user_id','items_qty','updated_at']
-        return { headers, rows: items, filename: 'carts' }
-      }
-      case 'catalog': {
-        const items = take(payload?.products || payload?.rows || payload?.results || [])
-        const headers = ['title','sku','stock','sold','category']
-        const rows = items.map((p: any) => ({
-          ...p,
-          category: typeof p?.category === 'object' ? (p.category?.name ?? '') : (p?.category ?? '')
-        }))
-        return { headers, rows, filename: 'catalog' }
-      }
-      case 'health': {
-        const items = take(payload?.rows?.products?.data || [])
-        const headers = safe(items[0], ['product_id','title','stock','sold','level'])
-        return { headers, rows: items, filename: 'health_products' }
-      }
-      case 'impact': {
-        const items = take(payload?.rows || [])
-        const headers = safe(items[0], ['order_id','created_at','avoided_waste_kg','avoided_co2_kg','savings_eur'])
-        return { headers, rows: items, filename: 'impact' }
-      }
-      case 'category': {
-        const items = take(payload?.by_category || [])
-        const headers = safe(items[0], ['category_id','category_name','revenue','orders','units'])
-        return { headers, rows: items, filename: 'sales_by_category' }
-      }
-      case 'payments': {
-        const items = take(payload?.rows || [])
-        const headers = safe(items[0], ['order_id','created_at','method','status','amount'])
-        return { headers, rows: items, filename: 'payments' }
-      }
-      case 'cohorts': {
-        const items = take(payload?.rows || [])
-        const headers = safe(items[0], ['user_id','cohort_month','first_order','orders','revenue'])
-        return { headers, rows: items, filename: 'cohorts' }
-      }
-      case 'geo': {
-        const items = take(payload?.rows || [])
-        const headers = safe(items[0], ['order_id','created_at','total_price','zone'])
-        return { headers, rows: items, filename: 'geo' }
-      }
-      default:
-        return { headers: [], rows: [], filename: `report_${current}` }
+  useEffect(() => {
+    if (firstLoad.current) {
+      firstLoad.current = false
+      fetchData()
     }
-  }
+  }, []) // eslint-disable-line
 
-  function toCsvCell(v: any) {
-    if (v == null) return ''
-    if (typeof v === 'object') {
-      if ('name' in (v as any)) return String((v as any).name ?? '')
-      return JSON.stringify(v)
-    }
-    const s = String(v)
-    if (s.includes('"') || s.includes(',') || s.includes('\n')) {
-      return `"${s.replace(/"/g, '""')}"`
-    }
-    return s
-  }
+  // ========== HEADER ==========
+  const SummaryCards = useMemo(() => {
+    const s = data?.summary || {}
+    const cards: Array<{ icon: React.ReactNode; label: string; value: string }> = []
 
-  async function onExportCSV() {
-    const { headers, rows, filename } = getExportTable(tab, data, limit)
-    const csv = [
-      headers.join(','),
-      ...rows.map((r: any) => headers.map(h => toCsvCell(r?.[h])).join(',')),
-    ].join('\n')
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    const today = new Date().toISOString().slice(0,10)
-    a.download = `${filename}_${today}.csv`
-    document.body.appendChild(a); a.click(); a.remove()
-    URL.revokeObjectURL(url)
-  }
-
-
-    const labelMap: Record<SubTab, string> = {
-    sales: 'Ventes', orders: 'Commandes', customers: 'Clients', carts: 'Paniers',
-    catalog: 'Catalogue', health: 'Santé', impact: 'Impact', category: 'Par catégorie',
-    payments: 'Paiements', cohorts: 'Cohortes', geo: 'Géo'
-    }
-    const getCurrentLabel = (t: SubTab) => labelMap[t] ?? t
-
-
-    async function onExportPDF() {
-        if (!reportRef.current) return;
-        setExporting(true);
-        const node = reportRef.current;
-
-        try {
-            const pdf = new jsPDF({ orientation: 'p', unit: 'pt', format: 'a4' });
-            const pageWidth = pdf.internal.pageSize.getWidth();
-            const pageHeight = pdf.internal.pageSize.getHeight();
-            const padX = 36;
-            const contentWidth = pageWidth - padX * 2;
-
-            const headerTop = 36;
-            const headerL2 = headerTop + 18;
-            const headerL3 = headerTop + 32;
-            const headerL4 = headerTop + 46;
-            const headerHeight = headerL4 + 10;
-            const marginTop = headerHeight + 8;
-            const marginBottom = 40;
-            const usablePageHeight = pageHeight - marginTop - marginBottom;
-
-            const normalize = (s: string) =>
-            s
-                .normalize('NFKD')
-                .replace(/[\u0300-\u036f]/g, '')
-                .replace(/[^\x20-\x7E]/g, '');
-
-            const currentLabel =
-            (
-                [
-                { id: 'sales', label: 'Ventes' }, { id: 'orders', label: 'Commandes' },
-                { id: 'customers', label: 'Clients' }, { id: 'carts', label: 'Paniers' },
-                { id: 'catalog', label: 'Catalogue' }, { id: 'health', label: 'Sante' },
-                { id: 'impact', label: 'Impact' }, { id: 'category', label: 'Par categorie' },
-                { id: 'payments', label: 'Paiements' }, { id: 'cohorts', label: 'Cohortes' },
-                { id: 'geo', label: 'Geo' }
-                ] as Array<{ id: SubTab; label: string }>
-            ).find(x => x.id === tab)?.label ?? String(tab);
-
-            const producerName =
-            user?.first_name && user?.last_name
-                ? `${user.first_name} ${user.last_name}`
-                : user?.public_display_name || user?.email || 'Producteur';
-            const producerEmail = user?.email ? ` - ${user.email}` : '';
-            const bucketLabel = bucket === 'day' ? 'Jour' : bucket === 'week' ? 'Semaine' : 'Mois';
-            const header1 = normalize(`Dashboard - ${currentLabel}`);
-            const header2 = normalize(`${producerName}${producerEmail}`);
-            const header3 = normalize(`Periode: ${dateFrom} - ${dateTo}   -   Granularite: ${bucketLabel}   -   Vue: ${viewMode.toUpperCase()}`);
-            const header4 = normalize(`Genere: ${new Date().toLocaleString('fr-FR')}`);
-
-            const pxWidth = Math.floor(pageWidth * (96 / 72));
-            const original = { width: node.style.width, maxWidth: node.style.maxWidth, margin: node.style.margin, overflow: node.style.overflow };
-            node.style.width = `${pxWidth}px`;
-            node.style.maxWidth = `${pxWidth}px`;
-            node.style.margin = '0 auto';
-            node.style.overflow = 'visible';
-            window.dispatchEvent(new Event('resize'));
-            await new Promise(r => setTimeout(r, 60));
-
-            const canvas = await html2canvas(node, {
-            scale: 2,
-            backgroundColor: '#ffffff',
-            useCORS: true,
-            foreignObjectRendering: false,
-            });
-            const imgData = canvas.toDataURL('image/png');
-
-            const scale = contentWidth / canvas.width;
-            const imgHeight = canvas.height * scale;
-
-            let heightLeft = imgHeight;
-            pdf.addImage(imgData, 'PNG', padX, marginTop, contentWidth, imgHeight);
-            heightLeft -= usablePageHeight;
-
-            while (heightLeft > 0) {
-            pdf.addPage();
-            const shift = imgHeight - heightLeft;
-            pdf.addImage(imgData, 'PNG', padX, marginTop - shift, contentWidth, imgHeight);
-            heightLeft -= usablePageHeight;
-            }
-
-            const pages = pdf.getNumberOfPages();
-            for (let i = 1; i <= pages; i++) {
-            pdf.setPage(i);
-            pdf.setFillColor(255, 255, 255);
-            pdf.rect(0, 0, pageWidth, marginTop, 'F');
-            pdf.setFont('helvetica', 'bold'); pdf.setFontSize(14);
-            pdf.text(header1, padX, headerTop);
-            pdf.setFont('helvetica', 'normal'); pdf.setFontSize(10);
-            pdf.text(header2, padX, headerL2);
-            pdf.text(header3, padX, headerL3);
-            pdf.setTextColor(90);
-            pdf.text(header4, padX, headerL4);
-            pdf.setTextColor(0);
-            const footer = `Page ${i}/${pages}`;
-            pdf.setFontSize(9);
-            pdf.text(footer, pageWidth - padX - pdf.getTextWidth(footer), pageHeight - 16);
-            }
-
-            const today = new Date().toISOString().slice(0, 10);
-            pdf.save(`dashboard_${tab}_${today}.pdf`);
-
-            node.style.width = original.width;
-            node.style.maxWidth = original.maxWidth;
-            node.style.margin = original.margin;
-            node.style.overflow = original.overflow;
-            window.dispatchEvent(new Event('resize'));
-        } catch (err) {
-            console.error('Export PDF error:', err);
-        } finally {
-            setExporting(false);
-        }
+    if (tab === 'sales') {
+      cards.push(
+        { icon: <TrendingUp className="w-4 h-4" />, label: 'CA', value: fmtEur(asNum(s.revenue)) },
+        { icon: <Receipt className="w-4 h-4" />, label: 'Cmd', value: String(asNum(s.orders)) },
+        { icon: <BarChart3 className="w-4 h-4" />, label: 'AOV', value: fmtEur(asNum(s.avg_order_value)) },
+      )
+    } else if (tab === 'orders') {
+      cards.push(
+        { icon: <Receipt className="w-4 h-4" />, label: 'Cmd', value: String(asNum(s.orders)) },
+        { icon: <TrendingUp className="w-4 h-4" />, label: 'CA', value: fmtEur(asNum(s.revenue)) },
+        { icon: <Leaf className="w-4 h-4" />, label: 'Livrées', value: String(asNum(s.by_status?.delivered)) },
+      )
+    } else if (tab === 'carts') {
+      cards.push(
+        { icon: <ShoppingCart className="w-4 h-4" />, label: 'Paniers actifs', value: String(asNum(s.active_carts)) },
+        { icon: <Users className="w-4 h-4" />, label: 'Articles / panier', value: asNum(s.avg_cart_qty).toFixed(1) },
+      )
+    } else if (tab === 'catalog') {
+      const p = s.products || {}
+      const b = s.bundles || {}
+      cards.push(
+        { icon: <Layers className="w-4 h-4" />, label: 'Produits', value: String(asNum(p.count)) },
+        { icon: <HeartPulse className="w-4 h-4" />, label: 'Faible stock', value: String(asNum(p.low_stock)) },
+        { icon: <Leaf className="w-4 h-4" />, label: 'Bundles', value: String(asNum(b.count)) },
+      )
+    } else if (tab === 'health') {
+      const p = s.products || {}
+      cards.push(
+        { icon: <Layers className="w-4 h-4" />, label: 'Produits', value: String(asNum(p.count)) },
+        { icon: <HeartPulse className="w-4 h-4" />, label: 'Faible stock', value: String(asNum(p.low_stock)) },
+      )
+    } else if (tab === 'impact') {
+      cards.push(
+        { icon: <Leaf className="w-4 h-4" />, label: 'CO₂ évité (kg)', value: asNum(s.avoided_co2_kg).toFixed(2) },
+        { icon: <Leaf className="w-4 h-4" />, label: 'Gaspillage évité (kg)', value: asNum(s.avoided_waste_kg).toFixed(2) },
+        { icon: <TrendingUp className="w-4 h-4" />, label: 'Économies (€)', value: fmtEur(asNum(s.savings_eur)) },
+      )
+    } else if (tab === 'payments') {
+      cards.push(
+        { icon: <CreditCard className="w-4 h-4" />, label: 'Cmd', value: String(asNum(s.orders)) },
+        { icon: <TrendingUp className="w-4 h-4" />, label: 'CA', value: fmtEur(asNum(s.revenue)) },
+      )
+    } else if (tab === 'cohorts') {
+      cards.push(
+        { icon: <Users className="w-4 h-4" />, label: 'Cohortes', value: String(asNum(s.cohorts)) },
+        { icon: <Users className="w-4 h-4" />, label: 'Clients', value: String(asNum(s.customers)) },
+        { icon: <TrendingUp className="w-4 h-4" />, label: 'CA', value: fmtEur(asNum(s.revenue)) },
+      )
+    } else if (tab === 'geo') {
+      cards.push(
+        { icon: <MapPin className="w-4 h-4" />, label: 'Zones', value: String(asNum(s.zones)) },
+        { icon: <Receipt className="w-4 h-4" />, label: 'Cmd', value: String(asNum(s.orders)) },
+        { icon: <TrendingUp className="w-4 h-4" />, label: 'CA', value: fmtEur(asNum(s.revenue)) },
+      )
+    } else if (tab === 'reviews') {
+      cards.push(
+        { icon: <Star className="w-4 h-4" />, label: 'Moy. note (article)', value: (asNum(s.avg_item_rating)).toFixed(2) || '0.00' },
+        { icon: <Star className="w-4 h-4" />, label: 'Moy. note (commande)', value: (asNum(s.avg_order_rating)).toFixed(2) || '0.00' },
+      )
     }
 
-
-
-  const Toolbar = (
-    <div className="mb-6">
-      <div className="flex flex-wrap gap-2 mb-2">
-        {firstRow.map(s => {
-          const ActiveIcon = s.icon; const active = s.id === tab
-          return (
-            <button key={s.id} onClick={() => setTab(s.id)}
-              className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                active ? 'bg-dark-green text-pale-yellow' : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
-              }`}>
-              <ActiveIcon className="w-4 h-4" /> {s.label}
-            </button>
-          )
-        })}
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {secondRow.map(s => {
-          const ActiveIcon = s.icon; const active = s.id === tab
-          return (
-            <button key={s.id} onClick={() => setTab(s.id)}
-              className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                active ? 'bg-dark-green text-pale-yellow' : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
-              }`}>
-              <ActiveIcon className="w-4 h-4" /> {s.label}
-            </button>
-          )
-        })}
-      </div>
-
-      <div className="mt-4 bg-white rounded-lg p-6 shadow-sm space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div>
-            <label className="block text-xs font-semibold text-dark-green mb-1">Du</label>
-            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-full px-3 py-2 border rounded-lg" />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-dark-green mb-1">Au</label>
-            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-full px-3 py-2 border rounded-lg" />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-dark-green mb-1">Granularité</label>
-            <select value={bucket} onChange={e => setBucket(e.target.value as Bucket)} className="w-full px-3 py-2 border rounded-lg">
-              <option value="day">Jour</option>
-              <option value="week">Semaine</option>
-              <option value="month">Mois</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-dark-green mb-1">Limite</label>
-            <input type="number" min={10} step={10} value={limit} onChange={e => setLimit(parseInt(e.target.value || '10', 10))} className="w-full px-3 py-2 border rounded-lg" />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-end">
-          <div className="lg:col-span-2">
-            <label className="block text-xs font-semibold text-dark-green mb-1">Vue</label>
-            <div className="flex rounded-lg overflow-hidden border">
-              <button onClick={() => setViewMode('table')}
-                className={`flex-1 px-3 py-2 text-sm inline-flex items-center justify-center gap-2 ${
-                  viewMode === 'table' ? 'bg-dark-green text-pale-yellow' : 'bg-white hover:bg-gray-50'
-                }`}><TableIcon className="w-4 h-4" /> Tableau</button>
-              <button onClick={() => setViewMode('chart')}
-                className={`flex-1 px-3 py-2 text-sm inline-flex items-center justify-center gap-2 ${
-                  viewMode === 'chart' ? 'bg-dark-green text-pale-yellow' : 'bg-white hover:bg-gray-50'
-                }`}><LineChartIcon className="w-4 h-4" /> Graphique</button>
-              <button onClick={() => setViewMode('both')}
-                className={`flex-1 px-3 py-2 text-sm inline-flex items-center justify-center gap-2 ${
-                  viewMode === 'both' ? 'bg-dark-green text-pale-yellow' : 'bg-white hover:bg-gray-50'
-                }`}><BothIcon className="w-4 h-4" /> Les deux</button>
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {cards.map((c, i) => (
+          <div key={i} className="bg-white rounded-xl p-4 shadow-sm flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-pale-yellow text-dark-green">{c.icon}</div>
+            <div>
+              <div className="text-xs text-gray-500">{c.label}</div>
+              <div className="text-lg font-semibold">{c.value}</div>
             </div>
           </div>
-          <div className="lg:col-span-1 flex lg:justify-end">
-            <button
-              onClick={onRefresh}
-              className="bg-dark-green text-pale-yellow px-4 py-2 rounded-lg font-semibold hover:bg-dark-green/90"
-            >
-              Actualiser
-            </button>
-          </div>
+        ))}
+      </div>
+    )
+  }, [data, tab])
+
+  // ========== TOOLBAR (reordenado) ==========
+  const Toolbar = (
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <button onClick={() => setViewMode('table')} className={`px-3 py-1 rounded-lg border ${viewMode === 'table' ? 'bg-dark-green text-white' : 'bg-white'}`} title="Table only">
+          <TableIcon className="w-4 h-4" />
+        </button>
+        <button onClick={() => setViewMode('chart')} className={`px-3 py-1 rounded-lg border ${viewMode === 'chart' ? 'bg-dark-green text-white' : 'bg-white'}`} title="Chart only">
+          <LineChartIcon className="w-4 h-4" />
+        </button>
+        <button onClick={() => setViewMode('both')} className={`px-3 py-1 rounded-lg border ${viewMode === 'both' ? 'bg-dark-green text-white' : 'bg-white'}`} title="Both">
+          <BothIcon className="w-4 h-4" />
+        </button>
+
+        <div className="ml-2 flex items-center gap-2">
+          <span className="text-xs text-gray-600">Granularité</span>
+          <select className="border rounded-lg px-2 py-1 text-sm" value={bucket} onChange={e => setBucket(e.target.value as Bucket)}>
+            <option value="day">Jour</option>
+            <option value="week">Semaine</option>
+            <option value="month">Mois</option>
+          </select>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-2 justify-start lg:justify-end">
-          <button
-            onClick={onExportCSV}
-            disabled={exporting}
-            className="px-4 py-2 rounded-lg font-semibold bg-white text-dark-green ring-1 ring-black/5 hover:bg-gray-50 disabled:opacity-60"
-          >
-            Exporter CSV
-          </button>
-          <button
-            onClick={onExportPDF}
-            disabled={exporting}
-            className="px-4 py-2 rounded-lg font-semibold bg-white text-dark-green ring-1 ring-black/5 hover:bg-gray-50 disabled:opacity-60"
-          >
-            Exporter PDF
-          </button>
-        </div>
+        {tab === 'geo' && (
+          <div className="ml-2 flex items-center gap-2">
+            <span className="text-xs text-gray-600">Niveau</span>
+            <select className="border rounded-lg px-2 py-1 text-sm" value={geoLevel} onChange={e => setGeoLevel(e.target.value as any)}>
+              <option value="region">Région</option>
+              <option value="department">Département</option>
+              <option value="city">Ville</option>
+            </select>
+          </div>
+        )}
+      </div>
+
+      {/* Rango de fechas debajo */}
+      <div className="flex items-center gap-2">
+        <CalendarRange className="w-4 h-4 text-gray-600" />
+        <input
+          type="date"
+          className="border rounded-lg px-2 py-1 text-sm"
+          value={dateFrom}
+          onChange={e => {
+            const { from, to } = clampRange(e.target.value, dateTo)
+            setDateFrom(from); setDateTo(to)
+          }}
+        />
+        <span className="text-xs text-gray-600">→</span>
+        <input
+          type="date"
+          className="border rounded-lg px-2 py-1 text-sm"
+          value={dateTo}
+          onChange={e => {
+            const { from, to } = clampRange(dateFrom, e.target.value)
+            setDateFrom(from); setDateTo(to)
+          }}
+        />
       </div>
     </div>
   )
 
-    const salesView = useMemo(() => {
-        if (tab !== 'sales') return null
-        const results: any[] = Array.isArray(data) ? data : Array.isArray(data?.rows) ? data.rows : []
+  // ========== VIEWS ==========
 
-        const dayKey = (s?: string) => s ? new Date(s).toISOString().slice(0, 10) : 'n/a'
+  // SALES
+  const salesView = useMemo(() => {
+    if (tab !== 'sales') return null
+    const series: SeriesPoint[] = Array.isArray(data?.series) ? data.series : []
+    const rows: any[] = Array.isArray(data?.rows) ? data.rows : []
+    const rSeries = rollSeries(series, bucket)
 
-        const perSale = results.map((o: any) => ({
-            period: dayKey(o.created_at),
-            revenue: asNum(o.total_price),
-            units: asNum(o.units_count || 0),
-        }))
-
-        const byDay: Record<string, { revenue: number; units: number }> = {}
-        for (const p of perSale) {
-            const k = p.period
-            byDay[k] ||= { revenue: 0, units: 0 }
-            byDay[k].revenue += p.revenue || 0
-            byDay[k].units += p.units || 0
-        }
-
-        const dailySeries = Object.entries(byDay)
-            .sort(([a], [b]) => a.localeCompare(b))
-            .map(([period, v]) => ({ period, ...v }))
-
-        const chartData = bucket === 'day'
-            ? dailySeries
-            : rollSeries(dailySeries, bucket)
-
-        const chartBlock = (
-            <div className="bg-white rounded-lg p-6 shadow-sm">
-            <h4 className="text-sm font-semibold text-dark-green mb-3">Chiffre d'affaires par jour</h4>
-            <div className="w-full" style={{ height: 320 }}>
-                <ResponsiveContainer width="100%" height="100%" key={rcKey('sales', true)}>
-                <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="period" label={{ value: 'Date', position: 'insideBottom', offset: -5 }} />
-                    <YAxis label={{ value: 'Valeur (€)', angle: -90, position: 'insideLeft' }} />
-                    <Tooltip />
-                    <Legend />
-                    <Line type="monotone" dataKey="revenue" name="CA (€)" stroke="#14532d" strokeWidth={2} dot={false} />
-                    <Line type="monotone" dataKey="units" name="Unités" stroke="#4d7c0f" strokeWidth={2} dot={false} />
-                </LineChart>
-                </ResponsiveContainer>
-            </div>
-            </div>
-        )
-
-        const tableBlock = (
-            <div className="bg-white rounded-lg p-6 shadow-sm">
-            <div className="overflow-auto">
-                <table className="w-full table-auto">
-                <thead>
-                    <tr className="text-xs uppercase tracking-wide text-gray-600 bg-gray-50">
-                    <th className="px-4 py-2 text-left">Vente</th>
-                    <th className="px-4 py-2 text-right">Total</th>
-                    <th className="px-4 py-2 text-left">Créée</th>
-                    <th className="px-4 py-2 text-left">Unités</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {results.slice(0, limit).map((o: any, i: number) => (
-                    <tr key={o.id || i} className="border-b">
-                        <td className="px-4 py-2">{o.id}</td>
-                        <td className="px-4 py-2 text-right">{fmtEur(asNum(o.total_price))}</td>
-                        <td className="px-4 py-2">{fmtDate(o.created_at)}</td>
-                        <td className="px-4 py-2">{o.units_count || 0}</td>
-                    </tr>
-                    ))}
-                </tbody>
-                </table>
-            </div>
-            </div>
-        )
-
-        return <div className="space-y-6">{viewMode !== 'table' && chartBlock}{viewMode !== 'chart' && tableBlock}</div>
-        }, [data, limit, tab, viewMode, bucket])
-
-        const ordersView = useMemo(() => {
-            if (tab !== 'orders') return null
-            const results: any[] = Array.isArray(data) ? data : Array.isArray(data?.rows) ? data.rows : []
-
-            const dayKey = (s?: string) => s ? new Date(s).toISOString().slice(0, 10) : 'n/a'
-
-            const perOrder = results.map((o: any) => ({
-                period: dayKey(o.created_at),
-                revenue: asNum(o.total_price),
-                orders: 1,
-                units: 0,
-            }))
-
-            const byDay: Record<string, { revenue: number; orders: number; units: number }> = {}
-            for (const p of perOrder) {
-                const k = p.period
-                byDay[k] ||= { revenue: 0, orders: 0, units: 0 }
-                byDay[k].revenue += p.revenue || 0
-                byDay[k].orders += p.orders || 0
-                byDay[k].units += p.units || 0
-            }
-
-            const dailySeries = Object.entries(byDay)
-                .sort(([a], [b]) => a.localeCompare(b))
-                .map(([period, v]) => ({ period, ...v }))
-
-            const chartData = bucket === 'day'
-                ? dailySeries
-                : rollSeries(dailySeries, bucket)
-
-            const chartBlock = (
-                <div className="bg-white rounded-lg p-6 shadow-sm">
-                <h4 className="text-sm font-semibold text-dark-green mb-3">CA et commandes par jour</h4>
-                <div className="w-full" style={{ height: 320 }}>
-                    <ResponsiveContainer width="100%" height="100%" key={rcKey('orders', true)}>
-                    <BarChart data={chartData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="period" label={{ value: 'Date', position: 'insideBottom', offset: -5 }} />
-                        <YAxis label={{ value: 'Valeur', angle: -90, position: 'insideLeft' }} />
-                        <Tooltip />
-                        <Legend />
-                        <Bar dataKey="revenue" name="CA (€)" fill="#14532d" isAnimationActive={false} />
-                        <Bar dataKey="orders" name="Cmd" fill="#4d7c0f" isAnimationActive={false} />
-                    </BarChart>
-                    </ResponsiveContainer>
-                </div>
-                </div>
-            )
-
-            const tableBlock = (
-                <div className="bg-white rounded-lg p-6 shadow-sm">
-                <div className="overflow-auto">
-                    <table className="w-full table-auto">
-                    <thead>
-                        <tr className="text-xs uppercase tracking-wide text-gray-600 bg-gray-50">
-                        <th className="px-4 py-2 text-left">Commande</th>
-                        <th className="px-4 py-2 text-right">Total</th>
-                        <th className="px-4 py-2 text-left">Créée</th>
-                        <th className="px-4 py-2 text-left">Statut</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {results.slice(0, limit).map((o: any, i: number) => (
-                        <tr key={o.id || i} className="border-b">
-                            <td className="px-4 py-2">{o.id}</td>
-                            <td className="px-4 py-2 text-right">{fmtEur(asNum(o.total_price))}</td>
-                            <td className="px-4 py-2">{fmtDate(o.created_at)}</td>
-                            <td className="px-4 py-2">{o.status || ''}</td>
-                        </tr>
-                        ))}
-                    </tbody>
-                    </table>
-                </div>
-                </div>
-            )
-
-        return <div className="space-y-6">{viewMode !== 'table' && chartBlock}{viewMode !== 'chart' && tableBlock}</div>
-    }, [data, limit, tab, viewMode, bucket])
-
-
-  const customersView = useMemo(() => {
-    if (tab !== 'customers') return null
-    const results: any[] = Array.isArray(data) ? data : Array.isArray(data?.rows) ? data.rows : []
-    const topBySpent = [...results]
-        .sort((a,b) => asNum(b.spent) - asNum(a.spent))
-        .slice(0, 12)
-        .map(r => ({ label: String(r.user_id), value: asNum(r.spent) }))
-
-    const chartBlock = (
+    const chart = (
       <div className="bg-white rounded-lg p-6 shadow-sm">
-        <h4 className="text-sm font-semibold text-dark-green mb-3">Top clients par dépense</h4>
+        <h4 className="text-sm font-semibold text-dark-green mb-3">CA / commandes / unités</h4>
         <div className="w-full" style={{ height: 320 }}>
-          <ResponsiveContainer width="100%" height="100%" key={rcKey('customers')}>
-            <BarChart data={topBySpent}>
+          <ResponsiveContainer width="100%" height="100%" key={rcKey('sales')}>
+            <LineChart data={rSeries}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="label" tick={false} label={{ value: 'Client', position: 'insideBottom', offset: -5 }} />
-              <YAxis label={{ value: 'Dépense (€)', angle: -90, position: 'insideLeft' }} />
+              <XAxis dataKey="period" />
+              <YAxis yAxisId="left" />
+              <YAxis yAxisId="right" orientation="right" />
               <Tooltip />
               <Legend />
-              <Bar dataKey="value" name="Dépense (€)" fill="#14532d" isAnimationActive={false} />
-            </BarChart>
+              <Line yAxisId="left" type="monotone" dataKey="revenue" name="CA (€)" stroke="#14532d" strokeWidth={2} dot={false} />
+              <Line yAxisId="right" type="monotone" dataKey="orders" name="Cmd" stroke="#4d7c0f" strokeWidth={2} dot={false} />
+              <Line yAxisId="right" type="monotone" dataKey="units" name="Unités" stroke="#0e7490" strokeWidth={2} dot={false} />
+            </LineChart>
           </ResponsiveContainer>
         </div>
       </div>
     )
 
-    const tableBlock = (
-      <div className="bg-white rounded-lg p-6 shadow-sm">
-        <div className="overflow-auto">
-          <table className="w-full table-auto">
-            <thead>
-            <tr className="text-xs uppercase tracking-wide text-gray-600 bg-gray-50">
-                <th className="px-4 py-2 text-left">Utilisateur</th>
-                <th className="px-4 py-2 text-right">Cmd</th>
-                <th className="px-4 py-2 text-right">Dépense (€)</th>
-                <th className="px-4 py-2 text-left">1ère cmd</th>
-                <th className="px-4 py-2 text-left">Dernière cmd</th>
-                <th className="px-4 py-2 text-left">Segment</th>
-            </tr>
-            </thead>
-            <tbody>
-            {results.slice(0, limit).map((c: any, i: number) => (
-                <tr key={c.user_id || i} className="border-b">
-                <td className="px-4 py-2">{c.user_id}</td>
-                <td className="px-4 py-2 text-right">{asNum(c.orders)}</td>
-                <td className="px-4 py-2 text-right">{asNum(c.spent).toFixed(2)}</td>
-                <td className="px-4 py-2">{fmtDate(c.first_order)}</td>
-                <td className="px-4 py-2">{fmtDate(c.last_order)}</td>
-                <td className="px-4 py-2">{c.segment || ''}</td>
-                </tr>
-            ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    )
-
-    return <div className="space-y-6">{viewMode !== 'table' && chartBlock}{viewMode !== 'chart' && tableBlock}</div>
-  }, [data, limit, tab, viewMode])
-
-  const catalogView = useMemo(() => {
-    if (tab !== 'catalog') return null
-    const items = Array.isArray(data?.products) ? data.products
-      : Array.isArray(data?.rows) ? data.rows
-      : Array.isArray(data?.results) ? data.results : []
-    const tableCols = ['title','sku','stock','sold','category']
-
-    const chartData = items.slice(0, 12).map((p: any) => ({
-      label: p.title || p.name, sold: asNum(p.sold), stock: asNum(p.stock),
-    }))
-
-    const chartBlock = (
-      <div className="bg-white rounded-lg p-6 shadow-sm">
-        <h4 className="text-sm font-semibold text-dark-green mb-3">Ventes & stock par produit</h4>
-        <div className="w-full" style={{ height: 320 }}>
-          <ResponsiveContainer width="100%" height="100%" key={rcKey('catalog')}>
-            <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="label" tick={false} label={{ value: 'Produit', position: 'insideBottom', offset: -5 }} />
-              <YAxis label={{ value: 'Quantité', angle: -90, position: 'insideLeft' }} />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="sold" name="Vendu" fill="#14532d" isAnimationActive={false} />
-              <Bar dataKey="stock" name="Stock" fill="#4d7c0f" isAnimationActive={false} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-    )
-
-    const tableBlock = (
-      <div className="bg-white rounded-lg p-6 shadow-sm">
-        <div className="overflow-auto">
-          <table className="w-full table-auto">
-            <thead>
-              <tr className="text-xs uppercase tracking-wide text-gray-600 bg-gray-50">
-                {tableCols.map(k => <th key={k} className="px-4 py-2 text-left">{k.toUpperCase()}</th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {items.slice(0, limit).map((p: any, i: number) => (
-                <tr key={p.product_id || i} className="border-b">
-                  <td className="px-4 py-2">{p.title || p.name}</td>
-                  <td className="px-4 py-2">{p.sku ?? ''}</td>
-                  <td className="px-4 py-2">{asNum(p.stock)}</td>
-                  <td className="px-4 py-2">{asNum(p.sold)}</td>
-                  <td className="px-4 py-2">{typeof p.category === 'object' ? (p.category?.name ?? '') : (p.category ?? '')}</td>
-                </tr>
-              ))}
-              {items.length === 0 && <tr><td className="px-4 py-6 text-sm text-gray-500" colSpan={tableCols.length}>Aucun résultat</td></tr>}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    )
-
-    return <div className="space-y-6">{viewMode !== 'table' && chartBlock}{viewMode !== 'chart' && tableBlock}</div>
-  }, [data, limit, tab, viewMode])
-
-  const healthView = useMemo(() => {
-    if (tab !== 'health') return null
-    const summary = data?.summary || {}
-    const items = Array.isArray(data?.rows?.products?.data) ? data.rows.products.data : []
-    const top = Array.isArray(data?.top_products) ? data.top_products : []
-    const chartData = top.map((t: any) => ({ label: t.label, units: asNum(t.units) }))
-
-    const chartBlock = (
-      <div className="bg-white rounded-lg p-6 shadow-sm">
-        <h4 className="text-sm font-semibold text-dark-green mb-3">Top produits (unités)</h4>
-        <div className="w-full" style={{ height: 320 }}>
-          <ResponsiveContainer width="100%" height="100%" key={rcKey('health')}>
-            <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="label" tick={false} label={{ value: 'Produit', position: 'insideBottom', offset: -5 }} />
-              <YAxis label={{ value: 'Unités', angle: -90, position: 'insideLeft' }} />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="units" name="Unités" fill="#14532d" isAnimationActive={false} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-    )
-
-    const tableBlock = (
-      <div className="bg-white rounded-lg p-6 shadow-sm">
-        <div className="overflow-auto">
-          <table className="w-full table-auto">
-            <thead>
-              <tr className="text-xs uppercase tracking-wide text-gray-600 bg-gray-50">
-                <th className="px-4 py-2 text-left">Produit</th>
-                <th className="px-4 py-2 text-right">Stock</th>
-                <th className="px-4 py-2 text-right">Vendu</th>
-                <th className="px-4 py-2 text-left">Niveau</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.slice(0, limit).map((p: any, i: number) => (
-                <tr key={p.product_id || i} className="border-b">
-                  <td className="px-4 py-2">{p.title}</td>
-                  <td className="px-4 py-2 text-right">{asNum(p.stock)}</td>
-                  <td className="px-4 py-2 text-right">{asNum(p.sold)}</td>
-                  <td className="px-4 py-2">{p.level}</td>
-                </tr>
-              ))}
-              {items.length === 0 && <tr><td className="px-4 py-6 text-sm text-gray-500" colSpan={4}>Aucun résultat</td></tr>}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    )
-
-    return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <KpiCard title="Produits (total)" value={asNum(summary?.products?.count)} />
-          <KpiCard title="Zero stock" value={asNum(summary?.products?.zero_stock)} />
-          <KpiCard title="Faible stock" value={asNum(summary?.products?.low_stock)} />
-        </div>
-        {viewMode !== 'table' && chartBlock}
-        {viewMode !== 'chart' && tableBlock}
-      </div>
-    )
-  }, [data, limit, tab, viewMode])
-
-  const categoryView = useMemo(() => {
-    if (tab !== 'category') return null
-    const byCat = Array.isArray(data?.by_category) ? data.by_category : []
-    const items = byCat
-    const chartData = byCat.map((c: any) => ({ label: c.category_name || c.category_id, revenue: asNum(c.revenue), orders: asNum(c.orders) }))
-
-    const chartBlock = (
-      <div className="bg-white rounded-lg p-6 shadow-sm">
-        <h4 className="text-sm font-semibold text-dark-green mb-3">CA par catégorie</h4>
-        <div className="w-full" style={{ height: 320 }}>
-          <ResponsiveContainer width="100%" height="100%" key={rcKey('category', true)}>
-            <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="label" label={{ value: 'Catégorie', position: 'insideBottom', offset: -5 }} />
-              <YAxis label={{ value: 'Valeur', angle: -90, position: 'insideLeft' }} />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="revenue" name="CA (€)" fill="#14532d" isAnimationActive={false} />
-              <Bar dataKey="orders" name="Cmd" fill="#4d7c0f" isAnimationActive={false} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-    )
-
-    const tableBlock = (
-      <div className="bg-white rounded-lg p-6 shadow-sm">
-        <div className="overflow-auto">
-          <table className="w-full table-auto">
-            <thead>
-              <tr className="text-xs uppercase tracking-wide text-gray-600 bg-gray-50">
-                <th className="px-4 py-2 text-left">Catégorie</th>
-                <th className="px-4 py-2 text-right">CA</th>
-                <th className="px-4 py-2 text-right">Cmd</th>
-                <th className="px-4 py-2 text-right">Unités</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.slice(0, limit).map((c: any, i: number) => (
-                <tr key={c.category_id || i} className="border-b">
-                  <td className="px-4 py-2">{c.category_name || c.category_id}</td>
-                  <td className="px-4 py-2 text-right">{asNum(c.revenue).toFixed(2)}</td>
-                  <td className="px-4 py-2 text-right">{asNum(c.orders)}</td>
-                  <td className="px-4 py-2 text-right">{asNum(c.units)}</td>
-                </tr>
-              ))}
-              {items.length === 0 && <tr><td className="px-4 py-6 text-sm text-gray-500" colSpan={4}>Aucun résultat</td></tr>}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    )
-
-    return <div className="space-y-6">{viewMode !== 'table' && chartBlock}{viewMode !== 'chart' && tableBlock}</div>
-  }, [data, limit, tab, viewMode])
-
-  const paymentsView = useMemo(() => {
-    if (tab !== 'payments') return null
-    const byMethod = Array.isArray(data?.by_method) ? data.by_method : []
-    const items = Array.isArray(data?.rows) ? data.rows : []
-    const chartData = byMethod.map((m: any) => ({ label: m.method, revenue: asNum(m.revenue), count: asNum(m.count) }))
-
-    const chartBlock = (
-      <div className="bg-white rounded-lg p-6 shadow-sm">
-        <h4 className="text-sm font-semibold text-dark-green mb-3">Paiements par méthode</h4>
-        <div className="w-full" style={{ height: 320 }}>
-          <ResponsiveContainer width="100%" height="100%" key={rcKey('payments')}>
-            <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="label" label={{ value: 'Méthode', position: 'insideBottom', offset: -5 }} />
-              <YAxis label={{ value: 'Valeur', angle: -90, position: 'insideLeft' }} />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="revenue" name="CA (€)" fill="#14532d" isAnimationActive={false} />
-              <Bar dataKey="count" name="Transactions" fill="#4d7c0f" isAnimationActive={false} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-    )
-
-    const tableBlock = (
+    const table = (
       <div className="bg-white rounded-lg p-6 shadow-sm">
         <div className="overflow-auto">
           <table className="w-full table-auto">
             <thead>
               <tr className="text-xs uppercase tracking-wide text-gray-600 bg-gray-50">
                 <th className="px-4 py-2 text-left">Commande</th>
-                <th className="px-4 py-2 text-left">Méthode</th>
-                <th className="px-4 py-2 text-right">Montant</th>
-                <th className="px-4 py-2 text-left">Statut</th>
+                <th className="px-4 py-2 text-left">Item</th>
+                <th className="px-4 py-2 text-left">Contenu</th>
+                <th className="px-4 py-2 text-right">Ligne (€)</th>
                 <th className="px-4 py-2 text-left">Créée</th>
+                <th className="px-4 py-2 text-left">Producteur</th>
+                <th className="px-4 py-2 text-left">Commerce</th>
               </tr>
             </thead>
             <tbody>
-              {items.slice(0, limit).map((r: any, i: number) => (
-                <tr key={r.order_id || i} className="border-b">
+              {rows.slice(0, limit).map((r, i) => (
+                <tr key={`${r.order_id}-${r.item_id}-${i}`} className="border-b">
                   <td className="px-4 py-2">{r.order_id}</td>
-                  <td className="px-4 py-2">{r.method}</td>
-                  <td className="px-4 py-2 text-right">{asNum(r.amount).toFixed(2)}</td>
-                  <td className="px-4 py-2">{r.status}</td>
-                  <td className="px-4 py-2">{fmtDate(r.created_at)}</td>
+                  <td className="px-4 py-2">{r.item_id}</td>
+                  <td className="px-4 py-2">{`${r.bundle_title ?? r.label ?? '—'} x ${asNum(r.quantity, 1)}`}</td>
+                  <td className="px-4 py-2 text-right">{fmtEur(asNum(r.line_total || r.unit_price))}</td>
+                  <td className="px-4 py-2">{fmtDateTime(r.created_at)}</td>
+                  <td className="px-4 py-2">{r.producer_name ?? (Array.isArray(r.producer_names) ? r.producer_names.join(', ') : '')}</td>
+                  <td className="px-4 py-2">{r.company_name ?? (Array.isArray(r.company_names) ? r.company_names.join(', ') : '')}</td>
                 </tr>
               ))}
-              {items.length === 0 && <tr><td className="px-4 py-6 text-sm text-gray-500" colSpan={5}>Aucun résultat</td></tr>}
+              {rows.length === 0 && <tr><td className="px-4 py-6 text-sm text-gray-500" colSpan={7}>Aucun résultat</td></tr>}
             </tbody>
           </table>
         </div>
       </div>
     )
 
-    return <div className="space-y-6">{viewMode !== 'table' && chartBlock}{viewMode !== 'chart' && tableBlock}</div>
-  }, [data, limit, tab, viewMode])
+    return <div className="space-y-6">{viewMode !== 'table' && chart}{viewMode !== 'chart' && table}</div>
+  }, [data, bucket, limit, tab, viewMode])
 
-  const cohortsView = useMemo(() => {
-    if (tab !== 'cohorts') return null
-    const cohorts = Array.isArray(data?.cohorts) ? data.cohorts : []
-    const items = Array.isArray(data?.rows) ? data.rows : []
-    const chartData = cohorts.map((c: any) => ({
-      cohort: c.cohort_month,
-      revenue: (Array.isArray(c.periods) ? c.periods : []).reduce((s: number, p: any) => s + asNum(p.revenue), 0),
-      orders: (Array.isArray(c.periods) ? c.periods : []).reduce((s: number, p: any) => s + asNum(p.orders), 0),
-    }))
+  // ORDERS
+  const ordersView = useMemo(() => {
+    if (tab !== 'orders') return null
+    const rows: any[] = Array.isArray(data?.rows) ? data.rows : []
 
-    const chartBlock = (
+    const keyFn = bucket === 'week' ? weekKey : bucket === 'month' ? monthKey : (s: string) => s.slice(0, 10)
+    const chartData = rows.reduce((acc: Record<string, { period: string; revenue: number; orders: number }>, r: any) => {
+      const k = keyFn(r.created_at)
+      acc[k] = acc[k] || { period: k, revenue: 0, orders: 0 }
+      acc[k].revenue += asNum(r.total_price)
+      acc[k].orders += 1
+      return acc
+    }, {})
+    const chartArr = Object.values(chartData)
+
+    const chart = (
       <div className="bg-white rounded-lg p-6 shadow-sm">
-        <h4 className="text-sm font-semibold text-dark-green mb-3">Revenu par cohorte</h4>
+        <h4 className="text-sm font-semibold text-dark-green mb-3">Commandes et CA</h4>
         <div className="w-full" style={{ height: 320 }}>
-          <ResponsiveContainer width="100%" height="100%" key={rcKey('cohorts')}>
-            <BarChart data={chartData}>
+          <ResponsiveContainer width="100%" height="100%" key={rcKey('orders')}>
+            <BarChart data={chartArr} barCategoryGap="15%">
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="cohort" label={{ value: 'Cohorte', position: 'insideBottom', offset: -5 }} />
-              <YAxis label={{ value: 'Valeur', angle: -90, position: 'insideLeft' }} />
+              <XAxis dataKey="period" />
+              <YAxis />
               <Tooltip />
               <Legend />
-              <Bar dataKey="revenue" name="CA (€)" fill="#14532d" isAnimationActive={false} />
-              <Bar dataKey="orders" name="Cmd" fill="#4d7c0f" isAnimationActive={false} />
+              <Bar dataKey="orders" name="Cmd" fill="#14532d" isAnimationActive={false} maxBarSize={36} />
+              <Bar dataKey="revenue" name="CA (€)" fill="#4d7c0f" isAnimationActive={false} maxBarSize={36} />
             </BarChart>
           </ResponsiveContainer>
         </div>
       </div>
     )
 
-    const tableBlock = (
+    const table = (
+      <div className="bg-white rounded-lg p-6 shadow-sm">
+        <div className="overflow-auto">
+          <table className="w-full table-auto">
+            <thead>
+            <tr className="text-xs uppercase tracking-wide text-gray-600 bg-gray-50">
+              <th className="px-4 py-2 text-left">Utilisateur</th>
+              <th className="px-4 py-2 text-left">Commande</th>
+              <th className="px-4 py-2 text-right">Total</th>
+              <th className="px-4 py-2 text-left">Statut</th>
+              <th className="px-4 py-2 text-left">Créée</th>
+              <th className="px-4 py-2 text-left">Producteur</th>
+              <th className="px-4 py-2 text-left">Commerce</th>
+            </tr>
+            </thead>
+            <tbody>
+            {rows.slice(0, limit).map((r, i) => (
+              <tr key={r.id ?? i} className="border-b">
+                <td className="px-4 py-2">{r.user_name ?? r.customer_name ?? r.user ?? r.user_id ?? '—'}</td>
+                <td className="px-4 py-2">{r.id}</td>
+                <td className="px-4 py-2 text-right">{fmtEur(asNum(r.total_price))}</td>
+                <td className="px-4 py-2">{r.status}</td>
+                <td className="px-4 py-2">{fmtDateTime(r.created_at)}</td>
+                <td className="px-4 py-2">{Array.isArray(r.producer_names) ? r.producer_names.join(', ') : ''}</td>
+                <td className="px-4 py-2">{Array.isArray(r.company_names) ? r.company_names.join(', ') : ''}</td>
+              </tr>
+            ))}
+            {rows.length === 0 && <tr><td className="px-4 py-6 text-sm text-gray-500" colSpan={7}>Aucun résultat</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )
+
+    return <div className="space-y-6">{viewMode !== 'table' && chart}{viewMode !== 'chart' && table}</div>
+  }, [data, limit, tab, viewMode, bucket])
+
+  // CUSTOMERS
+  const customersView = useMemo(() => {
+    if (tab !== 'customers') return null
+    const items: any[] = Array.isArray(data?.rows) ? data.rows : []
+
+    const keyFn = bucket === 'week' ? weekKey : bucket === 'month' ? monthKey : (s: string) => (s || '').slice(0, 10)
+    const chartData = items.reduce((acc: Record<string, { period: string; revenue: number; orders: number }>, r: any) => {
+      const k = keyFn(r.first_order || new Date().toISOString())
+      acc[k] = acc[k] || { period: k, revenue: 0, orders: 0 }
+      acc[k].revenue += asNum(r.revenue ?? r.spent)
+      acc[k].orders += asNum(r.orders)
+      return acc
+    }, {})
+    const chartArr = Object.values(chartData)
+
+    const chart = (
+      <div className="bg-white rounded-lg p-6 shadow-sm">
+        <h4 className="text-sm font-semibold text-dark-green mb-3">Nouveaux clients (CA / commandes)</h4>
+        <div className="w-full" style={{ height: 320 }}>
+          <ResponsiveContainer width="100%" height="100%" key={rcKey('customers')}>
+            <BarChart data={chartArr} barCategoryGap="15%">
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="period" />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              <Bar dataKey="orders" name="Cmd" fill="#14532d" isAnimationActive={false} maxBarSize={36} />
+              <Bar dataKey="revenue" name="CA (€)" fill="#4d7c0f" isAnimationActive={false} maxBarSize={36} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    )
+
+    const table = (
       <div className="bg-white rounded-lg p-6 shadow-sm">
         <div className="overflow-auto">
           <table className="w-full table-auto">
@@ -992,11 +489,11 @@ export default function ProducerDashboardTab() {
             <tbody>
               {items.slice(0, limit).map((r: any, i: number) => (
                 <tr key={r.user_id || i} className="border-b">
-                  <td className="px-4 py-2">{r.user_id ?? ''}</td>
+                  <td className="px-4 py-2">{r.user_name ?? r.user ?? r.user_id ?? '—'}</td>
                   <td className="px-4 py-2">{r.cohort_month ?? ''}</td>
                   <td className="px-4 py-2">{fmtDate(r.first_order)}</td>
                   <td className="px-4 py-2 text-right">{asNum(r.orders).toFixed(0)}</td>
-                  <td className="px-4 py-2 text-right">{asNum(r.revenue).toFixed(2)}</td>
+                  <td className="px-4 py-2 text-right">{fmtEur(asNum(r.revenue ?? r.spent))}</td>
                 </tr>
               ))}
               {items.length === 0 && <tr><td className="px-4 py-6 text-sm text-gray-500" colSpan={5}>Aucun résultat</td></tr>}
@@ -1006,74 +503,15 @@ export default function ProducerDashboardTab() {
       </div>
     )
 
-    return <div className="space-y-6">{viewMode !== 'table' && chartBlock}{viewMode !== 'chart' && tableBlock}</div>
-  }, [data, limit, tab, viewMode])
+    return <div className="space-y-6">{viewMode !== 'table' && chart}{viewMode !== 'chart' && table}</div>
+  }, [data, limit, tab, viewMode, bucket])
 
-  const geoView = useMemo(() => {
-    if (tab !== 'geo') return null
-    const byZone = Array.isArray(data?.by_zone) ? data.by_zone : []
-    const items = Array.isArray(data?.rows) ? data.rows : []
-    const chartData = byZone.map((z: any) => ({ zone: z.zone, revenue: asNum(z.revenue), orders: asNum(z.orders) }))
-
-    const chartBlock = (
-      <div className="bg-white rounded-lg p-6 shadow-sm">
-        <h4 className="text-sm font-semibold text-dark-green mb-3">CA par zone</h4>
-        <div className="w-full" style={{ height: 320 }}>
-          <ResponsiveContainer width="100%" height="100%" key={rcKey('geo')}>
-            <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="zone" label={{ value: 'Zone', position: 'insideBottom', offset: -5 }} />
-              <YAxis label={{ value: 'Valeur', angle: -90, position: 'insideLeft' }} />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="revenue" name="CA (€)" fill="#14532d" isAnimationActive={false} />
-              <Bar dataKey="orders" name="Cmd" fill="#4d7c0f" isAnimationActive={false} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-    )
-
-    const tableBlock = (
-      <div className="bg-white rounded-lg p-6 shadow-sm">
-        <div className="overflow-auto">
-          <table className="w-full table-auto">
-            <thead>
-              <tr className="text-xs uppercase tracking-wide text-gray-600 bg-gray-50">
-                <th className="px-4 py-2 text-left">Commande</th>
-                <th className="px-4 py-2 text-right">Total</th>
-                <th className="px-4 py-2 text-left">Créée</th>
-                <th className="px-4 py-2 text-left">Zone</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.slice(0, limit).map((r: any, i: number) => (
-                <tr key={r.order_id || i} className="border-b">
-                  <td className="px-4 py-2">{r.order_id}</td>
-                  <td className="px-4 py-2 text-right">{asNum(r.total_price).toFixed(2)}</td>
-                  <td className="px-4 py-2">{fmtDate(r.created_at)}</td>
-                  <td className="px-4 py-2">{r.zone}</td>
-                </tr>
-              ))}
-              {items.length === 0 && <tr><td className="px-4 py-6 text-sm text-gray-500" colSpan={4}>Aucun résultat</td></tr>}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    )
-
-    return <div className="space-y-6">{viewMode !== 'table' && chartBlock}{viewMode !== 'chart' && tableBlock}</div>
-  }, [data, limit, tab, viewMode])
-
+  // CARTS
   const cartsView = useMemo(() => {
     if (tab !== 'carts') return null
     const summary = data?.summary || {}
     const items: any[] = Array.isArray(data?.rows) ? data.rows : []
-    const topAbandoned = Array.isArray(summary?.top_abandoned_products)
-      ? summary.top_abandoned_products
-      : Array.isArray(data?.top_abandoned_products)
-      ? data.top_abandoned_products
-      : []
+    const topAbandoned = Array.isArray(summary?.top_abandoned_products) ? summary.top_abandoned_products : []
 
     const chartData = topAbandoned.map((p: any) => ({ label: p.label || p.title, value: asNum(p.count || p.units || p.qty || 0) }))
 
@@ -1082,93 +520,18 @@ export default function ProducerDashboardTab() {
         <h4 className="text-sm font-semibold text-dark-green mb-3">Produits abandonnés</h4>
         <div className="w-full" style={{ height: 320 }}>
           <ResponsiveContainer width="100%" height="100%" key={rcKey('carts')}>
-            <BarChart data={chartData}>
+            <BarChart data={chartData} barCategoryGap="20%">
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="label" tick={false} label={{ value: 'Produit', position: 'insideBottom', offset: -5 }} />
               <YAxis label={{ value: 'Quantité', angle: -90, position: 'insideLeft' }} />
               <Tooltip />
               <Legend />
-              <Bar dataKey="value" name="Qté" fill="#14532d" isAnimationActive={false} />
+              <Bar dataKey="value" name="Qty" fill="#14532d" isAnimationActive={false} maxBarSize={36} />
             </BarChart>
           </ResponsiveContainer>
         </div>
       </div>
-    ) : (
-      <div className="bg-white rounded-lg p-6 shadow-sm text-gray-500">Aucune donnée de produits abandonnés.</div>
-    )
-
-    const tableBlock = (
-      <div className="bg-white rounded-lg p-6 shadow-sm">
-        <div className="overflow-auto">
-          <table className="w-full table-auto">
-            <thead>
-            <tr className="text-xs uppercase tracking-wide text-gray-600 bg-gray-50">
-                <th className="px-4 py-2 text-left">Panier</th>
-                <th className="px-4 py-2 text-left">Utilisateur</th>
-                <th className="px-4 py-2 text-right">Qté</th>
-                <th className="px-4 py-2 text-left">MAJ</th>
-            </tr>
-            </thead>
-            <tbody>
-            {items.slice(0, limit).map((r: any, i: number) => (
-                <tr key={r.cart_id || i} className="border-b">
-                <td className="px-4 py-2">{r.cart_id}</td>
-                <td className="px-4 py-2">{r.user_id ?? ''}</td>
-                <td className="px-4 py-2 text-right">{asNum(r.items_qty).toFixed(0)}</td>
-                <td className="px-4 py-2">{fmtDate(r.updated_at)}</td>
-                </tr>
-            ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    )
-
-    return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <KpiCard title="Utilisateurs sans achat" value={asNum(summary.users_no_purchase)} />
-          <KpiCard title="Paniers actifs" value={asNum(summary.active_carts)} />
-          <KpiCard title="Qté moyenne/panier" value={asNum(summary.avg_cart_qty)} />
-        </div>
-        {viewMode !== 'table' && chartBlock}
-        {viewMode !== 'chart' && tableBlock}
-      </div>
-    )
-  }, [data, limit, tab, viewMode])
-
-  const impactView = useMemo(() => {
-    if (tab !== 'impact') return null
-    const s = data?.summary || {}
-    const rows: any[] = Array.isArray(data?.rows) ? data.rows : []
-
-    const lineData = rows.map(r => ({
-      date: String(r.created_at).slice(0, 10),
-      waste: asNum(r.avoided_waste_kg),
-      co2: asNum(r.avoided_co2_kg),
-      savings: asNum(r.savings_eur),
-    }))
-
-    const chartBlock = lineData.length ? (
-      <div className="bg-white rounded-lg p-6 shadow-sm">
-        <h4 className="text-sm font-semibold text-dark-green mb-3">Impact par commande</h4>
-        <div className="w-full" style={{ height: 320 }}>
-          <ResponsiveContainer width="100%" height="100%" key={rcKey('impact')}>
-            <LineChart data={lineData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" label={{ value: 'Date', position: 'insideBottom', offset: -5 }} />
-              <YAxis label={{ value: 'Valeur', angle: -90, position: 'insideLeft' }} />
-              <Tooltip />
-              <Legend />
-              <Line type="monotone" dataKey="waste" name="Déchets évités (kg)" stroke="#14532d" isAnimationActive={false} />
-              <Line type="monotone" dataKey="co2" name="CO₂ évité (kg)" stroke="#4d7c0f" isAnimationActive={false} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-    ) : (
-      <div className="bg-white rounded-lg p-6 shadow-sm text-gray-500">Aucune donnée.</div>
-    )
+    ) : null
 
     const tableBlock = (
       <div className="bg-white rounded-lg p-6 shadow-sm">
@@ -1176,51 +539,521 @@ export default function ProducerDashboardTab() {
           <table className="w-full table-auto">
             <thead>
               <tr className="text-xs uppercase tracking-wide text-gray-600 bg-gray-50">
-                <th className="px-4 py-2 text-left">Commande</th>
-                <th className="px-4 py-2 text-left">Créée</th>
-                <th className="px-4 py-2 text-right">Déchets évités (kg)</th>
-                <th className="px-4 py-2 text-right">CO₂ évité (kg)</th>
-                <th className="px-4 py-2 text-right">Économies (€)</th>
+                <th className="px-4 py-2 text-left">Panier</th>
+                <th className="px-4 py-2 text-left">Utilisateur</th>
+                <th className="px-4 py-2 text-left">Maj</th>
+                <th className="px-4 py-2 text-right">Qté</th>
+                <th className="px-4 py-2 text-left">Producteur</th>
+                <th className="px-4 py-2 text-left">Commerce</th>
               </tr>
             </thead>
             <tbody>
-              {rows.slice(0, limit).map((r: any, i: number) => (
-                <tr key={r.order_id || i} className="border-b">
-                  <td className="px-4 py-2">{r.order_id}</td>
-                  <td className="px-4 py-2">{fmtDate(r.created_at)}</td>
-                  <td className="px-4 py-2 text-right">{asNum(r.avoided_waste_kg).toFixed(2)}</td>
-                  <td className="px-4 py-2 text-right">{asNum(r.avoided_co2_kg).toFixed(2)}</td>
-                  <td className="px-4 py-2 text-right">{asNum(r.savings_eur).toFixed(2)}</td>
-                </tr>
-              ))}
-              {rows.length === 0 && <tr><td className="px-4 py-6 text-sm text-gray-500" colSpan={5}>Aucun résultat</td></tr>}
+              {items.slice(0, limit).map((r: any, i: number) => {
+                const names = new Set<string>()
+                const comps = new Set<string>()
+                for (const it of (r.items || [])) {
+                  const b = it.bundle || {}
+                  ;(b.producer_names || []).forEach((n: string) => names.add(n))
+                  ;(b.company_names || []).forEach((n: string) => comps.add(n))
+                }
+                return (
+                  <tr key={r.cart_id || i} className="border-b">
+                    <td className="px-4 py-2">{r.cart_id}</td>
+                    <td className="px-4 py-2">{r.user_name ?? r.user ?? r.user_id ?? '—'}</td>
+                    <td className="px-4 py-2">{fmtDateTime(r.updated_at)}</td>
+                    <td className="px-4 py-2 text-right">{asNum(r.items_qty)}</td>
+                    <td className="px-4 py-2">{Array.from(names).join(', ')}</td>
+                    <td className="px-4 py-2">{Array.from(comps).join(', ')}</td>
+                  </tr>
+                )
+              })}
+              {items.length === 0 && <tr><td className="px-4 py-6 text-sm text-gray-500" colSpan={6}>Aucun résultat</td></tr>}
             </tbody>
           </table>
         </div>
       </div>
     )
 
-    return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <KpiCard title="Déchets évités (kg)" value={asNum(s.avoided_waste_kg)} />
-          <KpiCard title="CO₂ évité (kg)" value={asNum(s.avoided_co2_kg)} />
-          <KpiCard title="Économies clients (€)" value={asNum(s.savings_eur).toFixed(2)} />
-        </div>
-        {viewMode !== 'table' && chartBlock}
-        {viewMode !== 'chart' && tableBlock}
-      </div>
-    )
+    return <div className="space-y-6">{viewMode !== 'table' && chartBlock}{viewMode !== 'chart' && tableBlock}</div>
   }, [data, limit, tab, viewMode])
 
+  // CATALOG
+  const catalogView = useMemo(() => {
+    if (tab !== 'catalog') return null
+    const products: any[] =
+      Array.isArray(data?.products) ? data.products
+      : Array.isArray(data?.rows?.products) ? data.rows.products
+      : Array.isArray(data?.rows?.products?.data) ? data.rows.products.data
+      : []
 
+    const chartData = products.map((p: any) => ({ label: p.title || p.name, sold: asNum(p.sold), stock: asNum(p.stock) }))
+
+    const chart = (
+      <div className="bg-white rounded-lg p-6 shadow-sm">
+        <h4 className="text-sm font-semibold text-dark-green mb-3">Ventes & stock par produit</h4>
+        <div className="w-full" style={{ height: 320 }}>
+          <ResponsiveContainer width="100%" height="100%" key={rcKey('catalog')}>
+            <BarChart data={chartData} barCategoryGap="20%">
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="label" tick={false} label={{ value: 'Produit', position: 'insideBottom', offset: -5 }} />
+              <YAxis label={{ value: 'Quantité', angle: -90, position: 'insideLeft' }} />
+              <Tooltip />
+              <Legend />
+              <Bar dataKey="sold" name="Vendu" fill="#14532d" isAnimationActive={false} maxBarSize={36} />
+              <Bar dataKey="stock" name="Stock" fill="#4d7c0f" isAnimationActive={false} maxBarSize={36} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    )
+
+    const table = (
+      <div className="bg-white rounded-lg p-6 shadow-sm">
+        <div className="overflow-auto">
+          <table className="w-full table-auto">
+            <thead>
+              <tr className="text-xs uppercase tracking-wide text-gray-600 bg-gray-50">
+                <th className="px-4 py-2 text-left">Produit</th>
+                <th className="px-4 py-2 text-right">Stock</th>
+                <th className="px-4 py-2 text-right">Vendu</th>
+                <th className="px-4 py-2 text-left">Catégorie</th>
+                <th className="px-4 py-2 text-left">Producteur</th>
+                <th className="px-4 py-2 text-left">Commerce</th>
+              </tr>
+            </thead>
+            <tbody>
+              {products.slice(0, limit).map((p: any, i: number) => (
+                <tr key={p.product_id || i} className="border-b">
+                  <td className="px-4 py-2">{p.title || p.name}</td>
+                  <td className="px-4 py-2 text-right">{asNum(p.stock)}</td>
+                  <td className="px-4 py-2 text-right">{asNum(p.sold)}</td>
+                  <td className="px-4 py-2">{typeof p.category === 'object' ? (p.category?.name ?? '') : (p.category ?? '')}</td>
+                  <td className="px-4 py-2">{Array.isArray(p.producer_names) ? p.producer_names.join(', ') : (p.producer_name ?? '')}</td>
+                  <td className="px-4 py-2">{Array.isArray(p.company_names) ? p.company_names.join(', ') : (p.company_name ?? '')}</td>
+                </tr>
+              ))}
+              {products.length === 0 && <tr><td className="px-4 py-6 text-sm text-gray-500" colSpan={6}>Aucun résultat</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )
+
+    return <div className="space-y-6">{viewMode !== 'table' && chart}{viewMode !== 'chart' && table}</div>
+  }, [data, limit, tab, viewMode])
+
+  // HEALTH
+  const healthView = useMemo(() => {
+    if (tab !== 'health') return null
+    const products =
+      Array.isArray(data?.rows?.products) ? data.rows.products
+      : Array.isArray(data?.rows?.products?.data) ? data.rows.products.data
+      : (Array.isArray(data?.products) ? data.products : [])
+
+    const chartData = products.map((p: any) => ({ label: p.title || p.name, sold: asNum(p.sold), stock: asNum(p.stock) }))
+
+    const chart = (
+      <div className="bg-white rounded-lg p-6 shadow-sm">
+        <h4 className="text-sm font-semibold text-dark-green mb-3">Santé du catalogue</h4>
+        <div className="w-full" style={{ height: 320 }}>
+          <ResponsiveContainer width="100%" height="100%" key={rcKey('health')}>
+            <BarChart data={chartData} barCategoryGap="20%">
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="label" tick={false} />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              <Bar dataKey="stock" name="Stock" fill="#14532d" isAnimationActive={false} maxBarSize={36} />
+              <Bar dataKey="sold" name="Vendu" fill="#4d7c0f" isAnimationActive={false} maxBarSize={36} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    )
+
+    const table = (
+      <div className="bg-white rounded-lg p-6 shadow-sm">
+        <div className="overflow-auto">
+          <table className="w-full table-auto">
+            <thead>
+              <tr className="text-xs uppercase tracking-wide text-gray-600 bg-gray-50">
+                <th className="px-4 py-2 text-left">Produit</th>
+                <th className="px-4 py-2 text-right">Stock</th>
+                <th className="px-4 py-2 text-right">Vendu</th>
+                <th className="px-4 py-2 text-left">Niveau</th>
+                <th className="px-4 py-2 text-left">Producteur</th>
+                <th className="px-4 py-2 text-left">Commerce</th>
+              </tr>
+            </thead>
+            <tbody>
+              {products.slice(0, limit).map((p: any, i: number) => (
+                <tr key={p.product_id || i} className="border-b">
+                  <td className="px-4 py-2">{p.title}</td>
+                  <td className="px-4 py-2 text-right">{asNum(p.stock)}</td>
+                  <td className="px-4 py-2 text-right">{asNum(p.sold)}</td>
+                  <td className="px-4 py-2">{riskWordFR(p.level)}</td>
+                  <td className="px-4 py-2">{Array.isArray(p.producer_names) ? p.producer_names.join(', ') : (p.producer_name ?? '')}</td>
+                  <td className="px-4 py-2">{Array.isArray(p.company_names) ? p.company_names.join(', ') : (p.company_name ?? '')}</td>
+                </tr>
+              ))}
+              {products.length === 0 && <tr><td className="px-4 py-6 text-sm text-gray-500" colSpan={6}>Aucun résultat</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )
+
+    return <div className="space-y-6">{viewMode !== 'table' && chart}{viewMode !== 'chart' && table}</div>
+  }, [data, limit, tab, viewMode])
+
+  // IMPACT  (AJUSTE PARA NO DESBORDAR ANCHO)
+  const impactView = useMemo(() => {
+    if (tab !== 'impact') return null
+    const rows: any[] = Array.isArray(data?.rows) ? data.rows : []
+
+    const keyFn = bucket === 'week' ? weekKey : bucket === 'month' ? monthKey : (s: string) => s.slice(0, 10)
+    const chartData = rows.reduce((acc: Record<string, { period: string; co2: number; waste: number }>, r: any) => {
+      const k = keyFn(r.created_at)
+      const a = acc[k] || { period: k, co2: 0, waste: 0 }
+      a.co2 += asNum(r.avoided_co2_kg)
+      a.waste += asNum(r.avoided_waste_kg)
+      acc[k] = a
+      return acc
+    }, {})
+    const chartArr = Object.values(chartData)
+
+    const chart = (
+      <div className="bg-white rounded-lg p-6 shadow-sm">
+        <h4 className="text-sm font-semibold text-dark-green mb-3">Impact (CO₂ / déchets évités)</h4>
+        <div className="w-full max-w-full overflow-hidden" style={{ height: 320 }}>
+          <ResponsiveContainer width="100%" height="100%" key={rcKey('impact')}>
+            <BarChart data={chartArr} barCategoryGap="20%">
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="period" interval="preserveStartEnd" />
+              <YAxis />
+              <Tooltip />
+              <Legend wrapperStyle={{ overflow: 'hidden' }} />
+              <Bar dataKey="co2" name="CO₂ (kg)" fill="#14532d" isAnimationActive={false} maxBarSize={36} />
+              <Bar dataKey="waste" name="Gaspillage (kg)" fill="#4d7c0f" isAnimationActive={false} maxBarSize={36} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    )
+
+    const table = (
+      <div className="bg-white rounded-lg p-6 shadow-sm">
+        <div className="max-w-full overflow-x-auto">
+          <table className="w-full table-auto">
+            <thead>
+            <tr className="text-xs uppercase tracking-wide text-gray-600 bg-gray-50">
+              <th className="px-4 py-2 text-left">Commande</th>
+              <th className="px-4 py-2 text-left">Item</th>
+              <th className="px-4 py-2 text-left">Bundle</th>
+              <th className="px-4 py-2 text-left">Créée</th>
+              <th className="px-4 py-2 text-right">CO₂ évité (kg)</th>
+              <th className="px-4 py-2 text-right">Gaspillage évité (kg)</th>
+              <th className="px-4 py-2 text-right">Économies (€)</th>
+              <th className="px-4 py-2 text-left">Producteur</th>
+              <th className="px-4 py-2 text-left">Commerce</th>
+            </tr>
+            </thead>
+            <tbody>
+            {rows.slice(0, limit).map((r: any, i: number) => (
+              <tr key={`${r.order_id}-${r.item_id}-${i}`} className="border-b">
+                <td className="px-4 py-2">{r.order_id}</td>
+                <td className="px-4 py-2">{r.item_id}</td>
+                <td className="px-4 py-2">{r.bundle_title ?? '—'}</td>
+                <td className="px-4 py-2">{fmtDateTime(r.created_at)}</td>
+                <td className="px-4 py-2 text-right">{asNum(r.avoided_co2_kg).toFixed(2)}</td>
+                <td className="px-4 py-2 text-right">{asNum(r.avoided_waste_kg).toFixed(2)}</td>
+                <td className="px-4 py-2 text-right">{fmtEur(asNum(r.savings_eur))}</td>
+                <td className="px-4 py-2">{r.producer_name ?? (Array.isArray(r.producer_names) ? r.producer_names.join(', ') : '')}</td>
+                <td className="px-4 py-2">{r.company_name ?? (Array.isArray(r.company_names) ? r.company_names.join(', ') : '')}</td>
+              </tr>
+            ))}
+            {rows.length === 0 && <tr><td className="px-4 py-6 text-sm text-gray-500" colSpan={9}>Aucun résultat</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )
+
+    return <div className="space-y-6">{viewMode !== 'table' && chart}{viewMode !== 'chart' && table}</div>
+  }, [data, limit, tab, viewMode, bucket])
+
+  // PAYMENTS
+  const paymentsView = useMemo(() => {
+    if (tab !== 'payments') return null
+    const rows: any[] = Array.isArray(data?.rows) ? data.rows : []
+
+    const chartData = rows.map(r => ({ pm: r.payment_method || r.method || 'inconnu', success_rate: asNum(r.success_rate) * 100, aov: asNum(r.aov) }))
+    const chart = (
+      <div className="bg-white rounded-lg p-6 shadow-sm">
+        <h4 className="text-sm font-semibold text-dark-green mb-3">Paiements (taux de succès / AOV)</h4>
+        <div className="w-full" style={{ height: 320 }}>
+          <ResponsiveContainer width="100%" height="100%" key={rcKey('payments')}>
+            <BarChart data={chartData} barCategoryGap="20%">
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="pm" />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              <Bar dataKey="success_rate" name="Succès (%)" fill="#14532d" isAnimationActive={false} maxBarSize={36} />
+              <Bar dataKey="aov" name="AOV (€)" fill="#4d7c0f" isAnimationActive={false} maxBarSize={36} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    )
+
+    // Mantengo "order_rows" porque el endpoint cross lo expone así
+    const orderRows: any[] = Array.isArray(data?.order_rows) ? data.order_rows : []
+
+    const table = (
+      <div className="bg-white rounded-lg p-6 shadow-sm">
+        <div className="overflow-auto">
+          <table className="w-full table-auto">
+            <thead>
+            <tr className="text-xs uppercase tracking-wide text-gray-600 bg-gray-50">
+              <th className="px-4 py-2 text-left">Commande</th>
+              <th className="px-4 py-2 text-left">Item</th>
+              <th className="px-4 py-2 text-left">Méthode</th>
+              <th className="px-4 py-2 text-right">Montant (€)</th>
+              <th className="px-4 py-2 text-left">Producteur</th>
+              <th className="px-4 py-2 text-left">Commerce</th>
+            </tr>
+            </thead>
+            <tbody>
+            {orderRows.slice(0, limit).map((r: any, i: number) => (
+              <tr key={`${r.order_id}-${r.item_id ?? '0'}-${i}`} className="border-b">
+                <td className="px-4 py-2">{r.order_id}</td>
+                <td className="px-4 py-2">{r.item_id ?? '—'}</td>
+                <td className="px-4 py-2">{r.payment_method ?? r.method ?? '—'}</td>
+                <td className="px-4 py-2 text-right">{fmtEur(asNum(r.amount ?? r.total_price))}</td>
+                <td className="px-4 py-2">{Array.isArray(r.producer_names) ? r.producer_names.join(', ') : (r.producer_name ?? '')}</td>
+                <td className="px-4 py-2">{Array.isArray(r.company_names) ? r.company_names.join(', ') : (r.company_name ?? '')}</td>
+              </tr>
+            ))}
+            {orderRows.length === 0 &&
+              <tr><td className="px-4 py-6 text-sm text-gray-500" colSpan={6}>Aucun résultat</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )
+
+    return <div className="space-y-6">{viewMode !== 'table' && chart}{viewMode !== 'chart' && table}</div>
+  }, [data, limit, tab, viewMode])
+
+  // COHORTS
+  const cohortsView = useMemo(() => {
+    if (tab !== 'cohorts') return null
+    const items: any[] = Array.isArray(data?.rows_company) ? data.rows_company : (Array.isArray(data?.rows) ? data.rows : [])
+
+    const table = (
+      <div className="bg-white rounded-lg p-6 shadow-sm">
+        <div className="overflow-auto">
+          <table className="w-full table-auto">
+            <thead>
+              <tr className="text-xs uppercase tracking-wide text-gray-600 bg-gray-50">
+                <th className="px-4 py-2 text-left">Cohorte</th>
+                <th className="px-4 py-2 text-left">Commerce</th>
+                <th className="px-4 py-2 text-left">Producteur</th>
+                <th className="px-4 py-2 text-left">Offsets</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.slice(0, limit).map((r: any, i: number) => (
+                <tr key={`${r.company_id ?? r.user_id ?? i}`} className="border-b">
+                  <td className="px-4 py-2">{r.cohort_month}</td>
+                  <td className="px-4 py-2">{r.company_name ?? '—'}</td>
+                  <td className="px-4 py-2">{r.producer_name ?? '—'}</td>
+                  <td className="px-4 py-2">
+                    {(r.periods || []).map((p: any) => `+${p.offset}: ${p.orders} cmd / ${fmtEur(asNum(p.revenue))}`).join(' · ')}
+                  </td>
+                </tr>
+              ))}
+              {items.length === 0 && <tr><td className="px-4 py-6 text-sm text-gray-500" colSpan={4}>Aucun résultat</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )
+    return <div className="space-y-6">{table}</div>
+  }, [data, limit, tab])
+
+  // GEO  (CAMBIO: columna "Produit" → monto por ítem)
+  const geoView = useMemo(() => {
+    if (tab !== 'geo') return null
+    const byZone = Array.isArray(data?.by_zone) ? data.by_zone : []
+    const items = Array.isArray(data?.rows) ? data.rows : []
+    const chartData = byZone.map((z: any) => ({
+      zone: z.zone_desc || z.zone,
+      revenue: asNum(z.revenue),
+      orders: asNum(z.orders)
+    }))
+
+    const chart = (
+      <div className="bg-white rounded-lg p-6 shadow-sm">
+        <h4 className="text-sm font-semibold text-dark-green mb-3">CA par zone</h4>
+        <div className="w-full" style={{ height: 320 }}>
+          <ResponsiveContainer width="100%" height="100%" key={rcKey('geo')}>
+            <BarChart data={chartData} barCategoryGap="20%">
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="zone" label={{ value: 'Zone', position: 'insideBottom', offset: -5 }} />
+              <YAxis label={{ value: 'Valeur', angle: -90, position: 'insideLeft' }} />
+              <Tooltip />
+              <Legend />
+              <Bar dataKey="revenue" name="CA (€)" fill="#14532d" isAnimationActive={false} maxBarSize={36} />
+              <Bar dataKey="orders" name="Cmd" fill="#4d7c0f" isAnimationActive={false} maxBarSize={36} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    )
+
+    const table = (
+      <div className="bg-white rounded-lg p-6 shadow-sm">
+        <div className="overflow-auto">
+          <table className="w-full table-auto">
+            <thead>
+            <tr className="text-xs uppercase tracking-wide text-gray-600 bg-gray-50">
+              <th className="px-4 py-2 text-left">Commande</th>
+              <th className="px-4 py-2 text-left">Créée</th>
+              <th className="px-4 py-2 text-left">Zone</th>
+              <th className="px-4 py-2 text-right">Montant (€)</th>{/* ← antes: Produit */}
+              <th className="px-4 py-2 text-left">Producteur</th>
+              <th className="px-4 py-2 text-left">Commerce</th>
+            </tr>
+            </thead>
+            <tbody>
+            {items.slice(0, limit).map((r: any, i: number) => (
+              <tr key={`${r.order_id}-${r.order_item_id}-${i}`} className="border-b">
+                <td className="px-4 py-2">{r.order_id}</td>
+                <td className="px-4 py-2">{fmtDateTime(r.created_at)}</td>
+                <td className="px-4 py-2">{r.zone_desc ?? r.zone}</td>
+                <td className="px-4 py-2 text-right">{fmtEur(asNum(r.revenue_share ?? r.line_total ?? 0))}</td>
+                <td className="px-4 py-2">{r.producer_name ?? (Array.isArray(r.producer_names) ? r.producer_names.join(', ') : '')}</td>
+                <td className="px-4 py-2">{r.company_name ?? (Array.isArray(r.company_names) ? r.company_names.join(', ') : '')}</td>
+              </tr>
+            ))}
+            {items.length === 0 && <tr><td className="px-4 py-6 text-sm text-gray-500" colSpan={6}>Aucun résultat</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )
+
+    return <div className="space-y-6">{viewMode !== 'table' && chart}{viewMode !== 'chart' && table}</div>
+  }, [data, limit, tab, viewMode, geoLevel])
+
+  // REVIEWS
+  const reviewsView = useMemo(() => {
+    if (tab !== 'reviews') return null
+    const rows: any[] = Array.isArray(data?.rows) ? data.rows : []
+    const distI = data?.summary?.distribution_items || {}
+    const distO = data?.summary?.distribution_orders || {}
+
+    const toBars = (d: Record<string, number>) => Object.keys(d).sort().map(k => ({ rating: k, count: asNum(d[k]) }))
+
+    const chart = (
+      <div className="bg-white rounded-lg p-6 shadow-sm">
+        <h4 className="text-sm font-semibold text-dark-green mb-3">Répartition des notes</h4>
+        <div className="space-y-6">
+          <div className="w-full" style={{ height: 260 }}>
+            <ResponsiveContainer width="100%" height="100%" key={rcKey('reviews-items')}>
+              <BarChart data={toBars(distI)} barCategoryGap="20%">
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="rating" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="count" name="Articles" fill="#14532d" isAnimationActive={false} maxBarSize={36} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="w-full" style={{ height: 260 }}>
+            <ResponsiveContainer width="100%" height="100%" key={rcKey('reviews-orders')}>
+              <BarChart data={toBars(distO)} barCategoryGap="20%">
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="rating" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="count" name="Commandes" fill="#4d7c0f" isAnimationActive={false} maxBarSize={36} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+    )
+
+    const table = (
+      <div className="bg-white rounded-lg p-6 shadow-sm">
+        <div className="overflow-auto">
+          <table className="w-full table-auto">
+            <thead>
+            <tr className="text-xs uppercase tracking-wide text-gray-600 bg-gray-50">
+              <th className="px-4 py-2 text-left">Type</th>
+              <th className="px-4 py-2 text-left">Commande</th>
+              <th className="px-4 py-2 text-left">Item</th>
+              <th className="px-4 py-2 text-left">Bundle / Titre</th>
+              <th className="px-4 py-2 text-left">Note</th>
+              <th className="px-4 py-2 text-left">Producteur</th>
+              <th className="px-4 py-2 text-left">Commerce</th>
+              <th className="px-4 py-2 text-left">Date</th>
+            </tr>
+            </thead>
+            <tbody>
+            {rows.slice(0, limit).map((r: any, i: number) => (
+              <tr key={`${r.type}-${r.order_id ?? '0'}-${r.item_id ?? '0'}-${i}`} className="border-b">
+                <td className="px-4 py-2">{r.type}</td>
+                <td className="px-4 py-2">{r.order_id ?? '—'}</td>
+                <td className="px-4 py-2">{r.item_id ?? '—'}</td>
+                <td className="px-4 py-2">{r.bundle_title ?? r.title ?? '—'}</td>
+                <td className="px-4 py-2">{r.rating ?? r.customer_rating ?? '—'}</td>
+                <td className="px-4 py-2">{r.producer_name ?? (Array.isArray(r.producer_names) ? r.producer_names.join(', ') : '')}</td>
+                <td className="px-4 py-2">{r.company_name ?? (Array.isArray(r.company_names) ? r.company_names.join(', ') : '')}</td>
+                <td className="px-4 py-2">{fmtDateTime(r.rated_at ?? r.created_at)}</td>
+              </tr>
+            ))}
+            {rows.length === 0 && <tr><td className="px-4 py-6 text-sm text-gray-500" colSpan={8}>Aucun résultat</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )
+
+    return <div className="space-y-6">{viewMode !== 'table' && chart}{viewMode !== 'chart' && table}</div>
+  }, [data, limit, tab, viewMode, bucket])
+
+  // ===== MAIN RENDER =====
   return (
     <div className="space-y-6">
+      {/* Tabs */}
+      <div className="flex flex-wrap gap-2">
+        <button onClick={() => setTab('sales')} className={`px-3 py-1 rounded-full border ${tab === 'sales' ? 'bg-dark-green text-white' : 'bg-white'}`}>Ventes</button>
+        <button onClick={() => setTab('orders')} className={`px-3 py-1 rounded-full border ${tab === 'orders' ? 'bg-dark-green text-white' : 'bg-white'}`}>Commandes</button>
+        <button onClick={() => setTab('customers')} className={`px-3 py-1 rounded-full border ${tab === 'customers' ? 'bg-dark-green text-white' : 'bg-white'}`}>Utilisateurs</button>
+        <button onClick={() => setTab('carts')} className={`px-3 py-1 rounded-full border ${tab === 'carts' ? 'bg-dark-green text-white' : 'bg-white'}`}>Paniers</button>
+        <button onClick={() => setTab('catalog')} className={`px-3 py-1 rounded-full border ${tab === 'catalog' ? 'bg-dark-green text-white' : 'bg-white'}`}>Catalogue</button>
+        <button onClick={() => setTab('health')} className={`px-3 py-1 rounded-full border ${tab === 'health' ? 'bg-dark-green text-white' : 'bg-white'}`}>Santé</button>
+        <button onClick={() => setTab('impact')} className={`px-3 py-1 rounded-full border ${tab === 'impact' ? 'bg-dark-green text-white' : 'bg-white'}`}>Impact</button>
+        <button onClick={() => setTab('payments')} className={`px-3 py-1 rounded-full border ${tab === 'payments' ? 'bg-dark-green text-white' : 'bg-white'}`}>Paiements</button>
+        <button onClick={() => setTab('cohorts')} className={`px-3 py-1 rounded-full border ${tab === 'cohorts' ? 'bg-dark-green text-white' : 'bg-white'}`}>Cohortes</button>
+        <button onClick={() => setTab('geo')} className={`px-3 py-1 rounded-full border ${tab === 'geo' ? 'bg-dark-green text-white' : 'bg-white'}`}>Géo</button>
+        <button onClick={() => setTab('reviews')} className={`px-3 py-1 rounded-full border ${tab === 'reviews' ? 'bg-dark-green text-white' : 'bg-white'}`}>Évaluations</button>
+      </div>
+
       {Toolbar}
-      {error && <div className="bg-red-50 text-red-700 px-4 py-3 rounded-lg">{error}</div>}
-      {loading && <div className="bg-white rounded-lg p-6 shadow-sm text-gray-500">Chargement…</div>}
+
+      {loading && <div className="text-center text-sm text-gray-600">Chargement…</div>}
+      {error && <div className="text-center text-sm text-red-600">{error}</div>}
+
       {!loading && !error && (
-        <div ref={reportRef} className="space-y-6">
+        <>
+          {SummaryCards}
           {salesView}
           {ordersView}
           {customersView}
@@ -1228,24 +1061,11 @@ export default function ProducerDashboardTab() {
           {catalogView}
           {healthView}
           {impactView}
-          {categoryView}
           {paymentsView}
           {cohortsView}
           {geoView}
-          {tab !== 'sales' &&
-            tab !== 'orders' &&
-            tab !== 'customers' &&
-            tab !== 'carts' &&
-            tab !== 'catalog' &&
-            tab !== 'health' &&
-            tab !== 'impact' &&
-            tab !== 'category' &&
-            tab !== 'payments' &&
-            tab !== 'cohorts' &&
-            tab !== 'geo' && (
-              <div className="bg-white rounded-lg p-6 shadow-sm"><JsonView data={data} /></div>
-          )}
-        </div>
+          {reviewsView}
+        </>
       )}
     </div>
   )

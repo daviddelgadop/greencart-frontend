@@ -33,6 +33,7 @@ import Confirmation from './pages/Confirmation'
 import ProducerPublic from './pages/ProducerPublic';
 import ProducersCatalog from './pages/ProducersCatalog';
 import BlogArticleDetail from './pages/BlogArticleDetail';
+import ForgotPassword from './pages/ForgotPassword'
 
 function App() {
   const [showCookieConsent, setShowCookieConsent] = useState(
@@ -74,6 +75,8 @@ function App() {
                 <Route path="/sitemap" element={<SiteMap />} />
                 <Route path="/producers/:id" element={<ProducerPublic />} />
                 <Route path="/producers" element={<ProducersCatalog />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ForgotPassword />} />
 
 
                 <Route

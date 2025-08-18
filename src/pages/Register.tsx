@@ -1,11 +1,60 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { Mail, Lock, Eye, EyeOff, User } from 'lucide-react'
+import { Mail, Lock, Eye, EyeOff, User, CheckCircle2, XCircle } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+
+type AccountType = 'customer' | 'producer'
+
+type PasswordCheck = {
+  label: string
+  ok: boolean
+}
+
+function normalize(s: string) {
+  return (s || '').toLowerCase().replace(/\s+/g, '')
+}
+
+function validatePassword(
+  pwd: string,
+  context: { email: string; firstName: string; lastName: string }
+) {
+  const checks: PasswordCheck[] = [
+    { label: 'At least 12 characters', ok: pwd.length >= 12 },
+    { label: 'Contains lowercase letter', ok: /[a-z]/.test(pwd) },
+    { label: 'Contains uppercase letter', ok: /[A-Z]/.test(pwd) },
+    { label: 'Contains a digit', ok: /\d/.test(pwd) },
+    { label: 'Contains a symbol', ok: /[^A-Za-z0-9]/.test(pwd) },
+    { label: 'No spaces', ok: !/\s/.test(pwd) },
+  ]
+
+  const localPart = context.email.split('@')[0] || ''
+  const tooSimilar =
+    normalize(pwd).includes(normalize(localPart)) ||
+    normalize(pwd).includes(normalize(context.firstName)) ||
+    normalize(pwd).includes(normalize(context.lastName))
+
+  const similarityCheck: PasswordCheck = {
+    label: 'Not similar to your name or email',
+    ok: !tooSimilar,
+  }
+
+  const allChecks = [...checks, similarityCheck]
+  const isValid = allChecks.every(c => c.ok)
+
+  // Simple strength score (0–5) from core character set rules + length
+  const score =
+    (/[a-z]/.test(pwd) ? 1 : 0) +
+    (/[A-Z]/.test(pwd) ? 1 : 0) +
+    (/\d/.test(pwd) ? 1 : 0) +
+    (/[^A-Za-z0-9]/.test(pwd) ? 1 : 0) +
+    (pwd.length >= 16 ? 1 : 0)
+
+  return { checks: allChecks, isValid, score }
+}
 
 export default function Register() {
   const [searchParams] = useSearchParams()
-  const defaultType = searchParams.get('type') === 'producer' ? 'producer' : 'customer'
+  const defaultType = (searchParams.get('type') === 'producer' ? 'producer' : 'customer') as AccountType
 
   const [formData, setFormData] = useState({
     first_name: '',
@@ -14,22 +63,38 @@ export default function Register() {
     password: '',
     confirmPassword: '',
     date_of_birth: '',
-    type: defaultType as 'customer' | 'producer',
+    type: defaultType,
     public_display_name: '',
-    acceptTerms: false
+    acceptTerms: false,
   })
 
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
 
   const { register } = useAuth()
   const navigate = useNavigate()
 
+  const pwdValidation = useMemo(
+    () =>
+      validatePassword(formData.password, {
+        email: formData.email,
+        firstName: formData.first_name,
+        lastName: formData.last_name,
+      }),
+    [formData.password, formData.email, formData.first_name, formData.last_name]
+  )
+
+  const passwordsMatch = formData.password.length > 0 && formData.password === formData.confirmPassword
+  const canSubmit =
+    pwdValidation.isValid && passwordsMatch && formData.acceptTerms && !isLoading && !!formData.date_of_birth
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setSuccess('')
 
     const birthDate = new Date(formData.date_of_birth)
     const today = new Date()
@@ -42,18 +107,22 @@ export default function Register() {
       return
     }
 
-    if (formData.password !== formData.confirmPassword) {
+    if (!pwdValidation.isValid) {
+      setError('Le mot de passe ne respecte pas les exigences.')
+      return
+    }
+
+    if (!passwordsMatch) {
       setError('Les mots de passe ne correspondent pas')
       return
     }
 
     if (!formData.acceptTerms) {
-      setError('Vous devez accepter les conditions d\'utilisation')
+      setError("Vous devez accepter les conditions d'utilisation")
       return
     }
 
     setIsLoading(true)
-
     try {
       await register(
         formData.first_name,
@@ -64,9 +133,10 @@ export default function Register() {
         formData.date_of_birth,
         formData.public_display_name
       )
-      navigate('/')
-    } catch (err) {
-      setError('Une erreur est survenue lors de l\'inscription')
+      setSuccess('Compte créé. Si la vérification est requise, veuillez consulter votre email.')
+      // navigate('/login')
+    } catch {
+      setError("Une erreur est survenue lors de l'inscription")
     } finally {
       setIsLoading(false)
     }
@@ -76,7 +146,7 @@ export default function Register() {
     const { name, value, type } = e.target
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
+      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
     }))
   }
 
@@ -91,11 +161,8 @@ export default function Register() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
-                {error}
-              </div>
-            )}
+            {error && <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">{error}</div>}
+            {success && <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">{success}</div>}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Type de compte</label>
@@ -111,7 +178,9 @@ export default function Register() {
             </div>
 
             <div>
-              <label htmlFor="first_name" className="block text-sm font-medium text-gray-700 mb-2">Prénom</label>
+              <label htmlFor="first_name" className="block text-sm font-medium text-gray-700 mb-2">
+                Prénom
+              </label>
               <div className="relative">
                 <User className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
                 <input
@@ -128,7 +197,9 @@ export default function Register() {
             </div>
 
             <div>
-              <label htmlFor="last_name" className="block text-sm font-medium text-gray-700 mb-2">Nom</label>
+              <label htmlFor="last_name" className="block text-sm font-medium text-gray-700 mb-2">
+                Nom
+              </label>
               <div className="relative">
                 <User className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
                 <input
@@ -145,7 +216,9 @@ export default function Register() {
             </div>
 
             <div>
-              <label htmlFor="public_display_name" className="block text-sm font-medium text-gray-700 mb-2">Nom affiché public</label>
+              <label htmlFor="public_display_name" className="block text-sm font-medium text-gray-700 mb-2">
+                Nom affiché public
+              </label>
               <input
                 id="public_display_name"
                 name="public_display_name"
@@ -158,7 +231,9 @@ export default function Register() {
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">Adresse email</label>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                Adresse email
+              </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
                 <input
@@ -175,7 +250,9 @@ export default function Register() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">Mot de passe</label>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                Mot de passe
+              </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
                 <input
@@ -186,7 +263,8 @@ export default function Register() {
                   onChange={handleInputChange}
                   required
                   className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-green focus:border-transparent"
-                  placeholder="••••••••"
+                  placeholder="••••••••••••"
+                  aria-describedby="password-help"
                 />
                 <button
                   type="button"
@@ -196,10 +274,30 @@ export default function Register() {
                   {showPassword ? <EyeOff /> : <Eye />}
                 </button>
               </div>
+
+              {/* Strength bar */}
+              <div className="mt-2 h-2 w-full bg-gray-200 rounded">
+                <div
+                  className={`h-2 rounded ${pwdValidation.score <= 2 ? 'bg-red-500' : pwdValidation.score === 3 ? 'bg-yellow-500' : 'bg-green-600'}`}
+                  style={{ width: `${(pwdValidation.score / 5) * 100}%` }}
+                />
+              </div>
+
+              {/* Checklist */}
+              <ul id="password-help" className="mt-3 space-y-1 text-sm">
+                {pwdValidation.checks.map(c => (
+                  <li key={c.label} className={`flex items-center gap-2 ${c.ok ? 'text-green-700' : 'text-gray-600'}`}>
+                    {c.ok ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+                    <span>{c.label}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">Confirmer le mot de passe</label>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+                Confirmer le mot de passe
+              </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
                 <input
@@ -210,7 +308,7 @@ export default function Register() {
                   onChange={handleInputChange}
                   required
                   className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-green focus:border-transparent"
-                  placeholder="••••••••"
+                  placeholder="••••••••••••"
                 />
                 <button
                   type="button"
@@ -220,6 +318,9 @@ export default function Register() {
                   {showConfirmPassword ? <EyeOff /> : <Eye />}
                 </button>
               </div>
+              {!passwordsMatch && formData.confirmPassword.length > 0 && (
+                <p className="mt-2 text-sm text-red-600">Les mots de passe ne correspondent pas.</p>
+              )}
             </div>
 
             <div>
@@ -260,7 +361,7 @@ export default function Register() {
 
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={!canSubmit}
               className="w-full bg-dark-green text-pale-yellow py-3 rounded-lg font-semibold hover:bg-dark-green/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? 'Création...' : 'Créer mon compte'}

@@ -89,6 +89,7 @@ function commerceDepartmentCode(b: Bundle) { return b.department_data?.code || c
 function commerceDepartmentName(b: Bundle) { return b.department_data?.name || '' }
 function commerceRegionName(b: Bundle) { return b.region_data?.name || '' }
 
+
 /* =========================
    MultiSelect – dropdown with checkboxes
    ========================= */
@@ -181,6 +182,9 @@ export default function Shop() {
   const [filteredBundles, setFilteredBundles] = useState<Bundle[]>([])
   const [showFilters, setShowFilters] = useState(true)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+
+  const [loading, setLoading] = useState(true) 
+
 
   const [filters, setFilters] = useState({
     categories: [] as string[],
@@ -291,10 +295,13 @@ export default function Shop() {
   useEffect(() => {
     const load = async () => {
       try {
+        setLoading(true) 
         const data = await http.get<Bundle[]>('/api/public-bundles/')
         setBundles(data || [])
       } catch (err) {
         console.error('Erreur lors du chargement des bundles:', err)
+      } finally {
+        setLoading(false) 
       }
     }
     load()
@@ -768,16 +775,31 @@ export default function Shop() {
           )}
 
           <div className="flex-1">
-            {sortedBundles.length === 0 ? (
-              <div className="text-center py-20 text-gray-500">Aucun produit trouvé</div>
+            {loading ? (
+              <div className="text-center py-20 text-gray-500 animate-pulse">
+                Chargement des produits...
+              </div>
+            ) : sortedBundles.length === 0 ? (
+              <div className="text-center py-20 text-gray-500">
+                Aucun produit trouvé
+              </div>
             ) : (
-              <div className={`grid gap-6 ${viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
-                {sortedBundles.map(bundle => (
+              <div
+                className={`grid gap-6 ${
+                  viewMode === 'grid'
+                    ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
+                    : 'grid-cols-1'
+                }`}
+              >
+                {sortedBundles.map((bundle) => (
                   <BundleCard key={bundle.id} bundle={bundle} viewMode={viewMode} />
                 ))}
               </div>
             )}
           </div>
+
+
+          
         </div>
       </div>
     </div>

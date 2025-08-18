@@ -147,11 +147,11 @@ export default function Legal() {
               <div>
                 <h3 className="font-semibold text-dark-green mb-2">Hébergeur du site</h3>
                 <div className="text-gray-600">
-                  <p>OVHcloud</p>
-                  <p>2 rue Kellermann</p>
-                  <p>59100 Roubaix, France</p>
-                  <p>Téléphone : +33 9 72 10 10 07</p>
-                  <p>Site web : www.ovhcloud.com</p>
+                  <p>Amazon Web Services (AWS) – Hébergement Elastic Beanstalk</p>
+                  <p>31 Place des Corolles, Tour Carpe Diem</p>
+                  <p>92400 Courbevoie, France</p>
+                  <p>Téléphone : +33 1 46 17 10 00</p>
+                  <p>Site web : <a href="https://aws.amazon.com/fr/">https://aws.amazon.com/fr/</a></p>
                 </div>
               </div>
               <div>

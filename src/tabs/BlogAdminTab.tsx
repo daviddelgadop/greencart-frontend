@@ -504,8 +504,17 @@ export default function BlogAdminTab() {
               <tbody className="bg-white divide-y divide-gray-200 text-sm">
                 {rows.map(p => (
                   <tr key={p.id}>
-                    <td className="px-4 py-3 font-medium text-gray-900 break-words">{p.title}</td>
-                    <td className="px-4 py-3">{p.category?.name || '—'}</td>
+                    <td className="px-4 py-3 font-medium text-gray-900 break-words">
+                        {(p.title || '—')
+                          .split(' ')
+                          .reduce((acc, word) => {
+                            if ((acc + ' ' + word).trim().length <= 20) {
+                              return (acc + ' ' + word).trim()
+                            }
+                            return acc
+                          }, '')}...
+                    </td>
+                    <td className="px-1 py-3">{p.category?.name || '—'}</td>
                     <td className="px-4 py-3">{p.author_name || '—'}</td>
                     <td className="px-4 py-3">{p.published_at ? new Date(p.published_at).toLocaleDateString() : '—'}</td>
                     <td className="px-4 py-3 text-center">{p.read_time_min ?? '—'}</td>

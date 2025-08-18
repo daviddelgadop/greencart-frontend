@@ -9,9 +9,36 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
-  
+
   const { login } = useAuth()
   const navigate = useNavigate()
+
+  const mapAuthErrorToMessage = (err: any): string => {
+    // Try to detect "not verified" coming from backend
+    const code =
+      err?.code ||
+      err?.response?.data?.code ||
+      err?.data?.code ||
+      err?.response?.data?.detail ||
+      err?.message
+
+    const text =
+      (typeof code === 'string' ? code : '') +
+      ' ' +
+      (err?.response?.data?.message || '')
+
+    const lowered = String(text).toLowerCase()
+
+    if (lowered.includes('not_verified') || lowered.includes('not verified')) {
+      return "Votre compte n'est pas vérifié. Veuillez vérifier votre email."
+    }
+
+    if (err?.response?.status === 401) {
+      return 'Email ou mot de passe incorrect'
+    }
+
+    return "Une erreur est survenue lors de la connexion"
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -21,8 +48,8 @@ export default function Login() {
     try {
       await login(email, password)
       navigate('/')
-    } catch (err) {
-      setError('Email ou mot de passe incorrect')
+    } catch (err: any) {
+      setError(mapAuthErrorToMessage(err))
     } finally {
       setIsLoading(false)
     }
@@ -32,7 +59,6 @@ export default function Login() {
     <div className="min-h-screen bg-pale-yellow/20 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full">
         <div className="bg-white rounded-2xl shadow-lg p-8">
-          {/* Logo */}
           <div className="text-center mb-8">
             <img src="/images/logo_min_circle.png" alt="GreenCart logo" className="h-16 w-auto mx-auto mb-4" />
             <h1 className="text-2xl font-bold text-dark-green">Connexion</h1>
@@ -41,7 +67,6 @@ export default function Login() {
             </p>
           </div>
 
-          {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
@@ -49,7 +74,6 @@ export default function Login() {
               </div>
             )}
 
-            {/* Email */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                 Adresse email
@@ -68,7 +92,6 @@ export default function Login() {
               </div>
             </div>
 
-            {/* Password */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
                 Mot de passe
@@ -94,7 +117,6 @@ export default function Login() {
               </div>
             </div>
 
-            {/* Forgot Password */}
             <div className="flex items-center justify-between">
               <Link
                 to="/forgot-password"
@@ -104,7 +126,6 @@ export default function Login() {
               </Link>
             </div>
 
-            {/* Submit Button */}
             <button
               type="submit"
               disabled={isLoading}
@@ -114,7 +135,6 @@ export default function Login() {
             </button>
           </form>
 
-          {/* Demo Accounts */}
           <div className="mt-6 p-4 bg-pale-yellow/30 rounded-lg">
             <p className="text-sm font-medium text-dark-green mb-2">Comptes de démonstration :</p>
             <div className="space-y-2 text-sm">
@@ -127,7 +147,6 @@ export default function Login() {
             </div>
           </div>
 
-          {/* Register Link */}
           <div className="mt-8 text-center">
             <p className="text-gray-600">
               Pas encore de compte ?{' '}

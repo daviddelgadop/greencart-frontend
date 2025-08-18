@@ -35,12 +35,9 @@ import ProducersCatalog from './pages/ProducersCatalog';
 import BlogArticleDetail from './pages/BlogArticleDetail';
 
 function App() {
-  const [showCookieConsent, setShowCookieConsent] = useState(false)
-
-  useEffect(() => {
-    const hasAccepted = localStorage.getItem('cookieConsent') === 'true'
-    setShowCookieConsent(!hasAccepted)
-  }, [])
+  const [showCookieConsent, setShowCookieConsent] = useState(
+    () => localStorage.getItem('cookieConsent') !== 'true'
+  )
   
   useEffect(() => {
     console.log('cookieConsent:', localStorage.getItem('cookieConsent'))

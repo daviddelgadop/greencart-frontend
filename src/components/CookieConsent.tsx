@@ -7,7 +7,7 @@ interface CookieConsentProps {
 
 export default function CookieConsent({ onAccept }: CookieConsentProps) {
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-dark-brown text-pale-yellow p-4 shadow-lg z-50">
+    <div className="fixed bottom-0 left-0 right-0 bg-dark-brown text-pale-yellow p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-lg z-[9999]">
       <div className="max-w-7xl mx-auto flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center space-x-3">
           <Cookie className="w-6 h-6 text-orange-beige" />

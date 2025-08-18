@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { MapPin, CreditCard, FileText } from 'lucide-react'
 import { useCart } from '../contexts/CartContext'
 import { useAuth } from '../contexts/AuthContext'
-import { useNavigate } from 'react-router-dom'
-import { MapPin, CreditCard, FileText } from 'lucide-react'
 import { http } from '../lib/api'
-
 
 const FREE_SHIPPING_THRESHOLD = Number(import.meta.env.VITE_FREE_SHIPPING_THRESHOLD)
 const BASE_SHIPPING_COST = Number(import.meta.env.VITE_BASE_SHIPPING_COST || 0)
@@ -37,7 +36,6 @@ export default function Checkout() {
     (sum, item) => sum + (Number(item.total_avoided_waste_kg) || 0) * item.quantity,
     0
   )
-
   const totalAvoidedCO2 = state.items.reduce(
     (sum, item) => sum + (Number(item.total_avoided_co2_kg) || 0) * item.quantity,
     0
@@ -93,18 +91,14 @@ export default function Checkout() {
     }
   }, [])
 
-  const renderPaymentMethod = (pm: any) => {
-    if (!pm) return ''
-    switch (pm.payment_method_type) {
-      case 'rib':
-        return `IBAN ${pm.fournisseur} •••• ${pm.last_digits}`
-      case 'card':
-        return `Carte ${pm.fournisseur} •••• ${pm.last_digits}`
-      case 'paypal':
-        return `PayPal: ${pm.paypal_email}`
-      default:
-        return 'Méthode inconnue'
-    }
+  const labelPaymentMethod = (pm: any) => {
+    const type = pm?.type ?? pm?.payment_method_type
+    const provider = pm?.provider_name ?? pm?.provider ?? pm?.fournisseur ?? '—'
+    const last4 = pm?.last4 ?? pm?.last_digits
+    if (type === 'card') return `Carte ${provider}${last4 ? ` •••• ${last4}` : ''}`
+    if (type === 'rib') return `IBAN ${provider}${last4 ? ` •••• ${last4}` : ''}`
+    if (type === 'paypal') return `PayPal: ${pm?.paypal_email ?? '—'}`
+    return 'Méthode inconnue'
   }
 
   const getProducerName = (item: any) =>
@@ -113,24 +107,17 @@ export default function Checkout() {
     item?.items?.[0]?.product?.company_data?.name ||
     'Producteur inconnu'
 
-  const labelPaymentMethod = (pm: any) => {
-    const type = pm?.type ?? pm?.payment_method_type
-    const provider = pm?.provider_name ?? pm?.provider ?? pm?.fournisseur ?? '—'
-    const last4 = pm?.last4
-    if (type === 'card') return `Carte ${provider}${last4 ? ` •••• ${last4}` : ''}`
-    if (type === 'rib') return `IBAN ${provider}${last4 ? ` •••• ${last4}` : ''}`
-    if (type === 'paypal') return `PayPal: ${pm?.paypal_email ?? '—'}`
-    return 'Méthode inconnue'
-  }
+  const canSubmit =
+    addresses.length > 0 &&
+    paymentMethods.length > 0 &&
+    !!selectedShippingId &&
+    !!selectedBillingId &&
+    !!selectedPaymentId
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!selectedShippingId || !selectedBillingId || !selectedPaymentId) {
-      alert('Veuillez sélectionner toutes les options.')
-      return
-    }
+    if (!canSubmit) return
 
-    // If your backend creates the order from the server-side cart, you can omit items.
     const orderPayload = {
       shipping_address_id: selectedShippingId,
       billing_address_id: selectedBillingId,
@@ -146,11 +133,8 @@ export default function Checkout() {
       })),
     }
 
-  try {
-    const data = await http.post('/api/orders/', orderPayload, {
-      headers: { 'Content-Type': 'application/json' },
-    })
-      // On success, clear cart using the context (this also syncs with backend)
+    try {
+      await http.post('/api/orders/', orderPayload, { headers: { 'Content-Type': 'application/json' } })
       await clearCart()
       navigate('/confirmation')
     } catch (err) {
@@ -171,7 +155,15 @@ export default function Checkout() {
                 <MapPin className="w-5 h-5" /> Adresse de livraison
               </h2>
               {addresses.length === 0 ? (
-                <p className="text-sm text-gray-500">Aucune adresse enregistrée.</p>
+                <div className="flex items-center justify-between gap-4 bg-pale-yellow/30 border border-dark-green/10 rounded-lg p-4">
+                  <p className="text-sm text-gray-700">Aucune adresse enregistrée.</p>
+                  <Link
+                    to="/account/address"
+                    className="bg-dark-green text-pale-yellow px-6 py-2 rounded-full font-semibold hover:bg-dark-green/90 transition-colors"
+                  >
+                    Ajouter une adresse
+                  </Link>
+                </div>
               ) : (
                 <select
                   required
@@ -194,7 +186,15 @@ export default function Checkout() {
                 <FileText className="w-5 h-5" /> Adresse de facturation
               </h2>
               {addresses.length === 0 ? (
-                <p className="text-sm text-gray-500">Aucune adresse enregistrée.</p>
+                <div className="flex items-center justify-between gap-4 bg-pale-yellow/30 border border-dark-green/10 rounded-lg p-4">
+                  <p className="text-sm text-gray-700">Aucune adresse enregistrée.</p>
+                  <Link
+                    to="/account/address"
+                    className="bg-dark-green text-pale-yellow px-6 py-2 rounded-full font-semibold hover:bg-dark-green/90 transition-colors"
+                  >
+                    Ajouter une adresse
+                  </Link>
+                </div>
               ) : (
                 <select
                   required
@@ -216,9 +216,16 @@ export default function Checkout() {
               <h2 className="text-xl font-semibold text-dark-green mb-4 flex items-center gap-2">
                 <CreditCard className="w-5 h-5" /> Méthode de paiement
               </h2>
-
               {paymentMethods.length === 0 ? (
-                <p className="text-sm text-gray-500">Aucun moyen de paiement enregistré.</p>
+                <div className="flex items-center justify-between gap-4 bg-pale-yellow/30 border border-dark-green/10 rounded-lg p-4">
+                  <p className="text-sm text-gray-700">Aucun moyen de paiement enregistré.</p>
+                  <Link
+                    to="/account/payment"
+                    className="bg-dark-green text-pale-yellow px-6 py-2 rounded-full font-semibold hover:bg-dark-green/90 transition-colors"
+                  >
+                    Ajouter un moyen de paiement
+                  </Link>
+                </div>
               ) : (
                 <select
                   required
@@ -302,7 +309,12 @@ export default function Checkout() {
 
               <button
                 type="submit"
-                className="w-full bg-dark-green text-pale-yellow py-4 rounded-full font-semibold text-lg hover:bg-dark-green/90 transition-colors"
+                disabled={!canSubmit}
+                className={`w-full py-4 rounded-full font-semibold text-lg transition-colors ${
+                  canSubmit
+                    ? 'bg-dark-green text-pale-yellow hover:bg-dark-green/90'
+                    : 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                }`}
               >
                 Confirmer et payer
               </button>

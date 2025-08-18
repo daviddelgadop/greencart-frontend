@@ -82,7 +82,6 @@ function minBestBefore(bundle: Bundle): number | null {
   return times.length ? Math.min(...times) : null
 }
 function priceStepFor(range: number) { if (range >= 100) return 1; if (range >= 10) return 0.1; return 0.01 }
-/** Commerce helpers */
 function commerceName(b: Bundle) { return b.items[0]?.product.company_data.name || '' }
 function commercePostalCode(b: Bundle) { return b.items[0]?.product.company_data.address.city.postal_code || '' }
 function commerceDeptCodeFromPostal(pc: string) { return pc && pc.length >= 2 ? pc.slice(0, 2) : '' }
@@ -91,7 +90,7 @@ function commerceDepartmentName(b: Bundle) { return b.department_data?.name || '
 function commerceRegionName(b: Bundle) { return b.region_data?.name || '' }
 
 /* =========================
-   MultiSelect – dropdown con checkboxes
+   MultiSelect – dropdown with checkboxes
    ========================= */
 type Opt = { value: string; label: string }
 
@@ -474,7 +473,8 @@ export default function Shop() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-4 divide-x rounded-2xl bg-[#F7FAF4] text-dark-green">
+              {/* KPIs responsive (2 cols on mobile, 4 on >=sm) */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 divide-x rounded-2xl bg-[#F7FAF4] text-dark-green">
                 <div className="px-5 py-3 text-center">
                   <div className="text-2xl font-bold">{stats.bundles}</div>
                   <div className="text-xs uppercase tracking-wide">Produits</div>
@@ -599,13 +599,14 @@ export default function Shop() {
           {sortedBundles.length} produit{sortedBundles.length > 1 ? 's' : ''} trouvé{sortedBundles.length > 1 ? 's' : ''}.
         </p>
 
-        <div className="flex gap-8">
+        {/* MAIN WRAPPER: column on mobile, row on >=lg */}
+        <div className="flex flex-col lg:flex-row gap-8">
           {showFilters && (
-            <div className="w-80 flex-shrink-0">
-              <div className="bg-white p-6 rounded-lg shadow-sm sticky top-24">
+            <div className="w-full lg:w-80 flex-shrink-0">
+              <div className="bg-white p-6 rounded-lg shadow-sm lg:sticky lg:top-24">
                 <h3 className="text-lg font-semibold text-dark-green mb-4">Filtres</h3>
 
-                {/* Catégories */}
+                {/* Categories */}
                 <div className="mb-6">
                   <label className="block text-sm font-medium mb-1">Catégories</label>
                   <MultiSelect
@@ -616,12 +617,9 @@ export default function Shop() {
                   />
                 </div>
 
-                {/* Prix max */}
+                {/* Price max */}
                 <div className="mb-6">
                   <label className="block text-sm font-medium mb-1">Prix max.</label>
-                  {/*<div className="text-sm text-dark-green font-medium text-center mb-2">
-                    {filters.maxPrice.toFixed(2)} €
-                  </div> */}
                   <div className="flex items-center justify-between text-sm text-gray-600 mb-1">
                     <span>{minPriceDisplay.toFixed(2)} €</span>
                     <span>{maxPriceDisplay.toFixed(2)} €</span>
@@ -654,7 +652,7 @@ export default function Shop() {
                   </div>
                 </div>
 
-                {/* Producteurs */}
+                {/* Producers */}
                 <div className="mb-6">
                   <label className="block text-sm font-medium mb-1">Producteurs</label>
                   <MultiSelect
@@ -676,7 +674,7 @@ export default function Shop() {
                   />
                 </div>
 
-                {/* Départements */}
+                {/* Departments */}
                 <div className="mb-6">
                   <label className="block text-sm font-medium mb-1">Origine (Département)</label>
                   <MultiSelect
@@ -687,7 +685,7 @@ export default function Shop() {
                   />
                 </div>
 
-                {/* Eco-score dinámico */}
+                {/* Eco-score */}
                 <div className="mb-6">
                   <label className="block text-sm font-medium mb-1">Score écologique</label>
                   <MultiSelect
@@ -709,7 +707,7 @@ export default function Shop() {
                   />
                 </div>
 
-                {/* Nota mínima (único select normal) */}
+                {/* Min rating */}
                 <div className="mb-6">
                   <label className="block text-sm font-medium mb-1">Note minimum (bundle)</label>
                   <div className="flex items-center gap-2">
@@ -729,21 +727,19 @@ export default function Shop() {
                   </div>
                 </div>
 
-
-              {/* Stock */}
-              <div className="mb-6">
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    className="rounded"
-                    checked={filters.inStockOnly}
-                    onChange={(e) => setFilters({ ...filters, inStockOnly: e.target.checked })}
-                  />
-                  <span>Afficher uniquement en stock</span>
-                </label>
-                <p className="text-xs text-gray-500 mt-1">Masque les lots en rupture.</p>
-              </div>
-
+                {/* Stock */}
+                <div className="mb-6">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      className="rounded"
+                      checked={filters.inStockOnly}
+                      onChange={(e) => setFilters({ ...filters, inStockOnly: e.target.checked })}
+                    />
+                    <span>Afficher uniquement en stock</span>
+                  </label>
+                  <p className="text-xs text-gray-500 mt-1">Masque les lots en rupture.</p>
+                </div>
 
                 {/* Reset */}
                 <div className="mt-6 text-center">
@@ -766,9 +762,7 @@ export default function Shop() {
                   >
                     Réinitialiser les filtres
                   </button>
-               </div>
-
-               
+                </div>
               </div>
             </div>
           )}

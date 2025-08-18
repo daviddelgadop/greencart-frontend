@@ -232,7 +232,8 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="py-20 bg-pale-yellow/30">
+
+      {/*<section className="py-20 bg-pale-yellow/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-dark-green mb-4">Ils nous font confiance</h2>
@@ -251,7 +252,7 @@ export default function Home() {
             ))}
           </div>
         </div>
-      </section>
+      </section>*/}
 
       <section className="py-20 bg-dark-green text-pale-yellow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">

@@ -11,8 +11,8 @@ import {
   Star,
   SortAsc,
 } from "lucide-react";
+import { http } from '../lib/api'
 
-const API_URL = import.meta.env.VITE_API_URL as string;
 
 type City = {
   name: string;
@@ -180,40 +180,38 @@ export default function ProducerPublic() {
 
   const [evalSort, setEvalSort] = useState<EvalSort>("rated_desc");
   const [evalPage, setEvalPage] = useState(1);
-  const EVALS_PER_PAGE = 10;
+  const EVALS_PER_PAGE = 20;
 
   useEffect(() => {
-    let alive = true;
-    (async () => {
+    let alive = true
+    ;(async () => {
       if (!id) {
-        setError("Identifiant du producteur manquant.");
-        setLoading(false);
-        return;
+        setError("Identifiant du producteur manquant.")
+        setLoading(false)
+        return
       }
-      setLoading(true);
-      setError(null);
+      setLoading(true)
+      setError(null)
       try {
-        const res = await fetch(`${API_URL}/api/public/producers/${id}/`);
-        if (!res.ok) throw new Error("Load error");
-        const data = await res.json();
-        if (!alive) return;
+        const data = await http.get<any>(`/api/public/producers/${id}/`)
+        if (!alive) return
 
-        setProducer((data?.producer as Producer) || null);
-        setCompanies((Array.isArray(data?.companies) ? data.companies : []) as Company[]);
-        setFeatured((Array.isArray(data?.featured_bundles) ? data.featured_bundles : []) as Bundle[]);
+        setProducer((data?.producer as Producer) || null)
+        setCompanies((Array.isArray(data?.companies) ? data.companies : []) as Company[])
+        setFeatured((Array.isArray(data?.featured_bundles) ? data.featured_bundles : []) as Bundle[])
         setRecentlyRated(
           (Array.isArray(data?.recently_rated_bundles) ? data.recently_rated_bundles : []) as Bundle[]
-        );
+        )
       } catch {
-        setError("Impossible de charger ce producteur.");
+        setError("Impossible de charger ce producteur.")
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    })();
+    })()
     return () => {
-      alive = false;
-    };
-  }, [id]);
+      alive = false
+    }
+  }, [id])
 
   const name = useMemo(() => (producer ? producerName(producer) : ""), [producer]);
   const exp = useMemo(() => {

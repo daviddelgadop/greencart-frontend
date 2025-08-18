@@ -4,8 +4,8 @@ import {
   Users, Search, CalendarDays, MapPin, BadgeCheck, ArrowRight,
   Factory, Globe, ChevronLeft, ChevronRight, Landmark, Store, Star
 } from "lucide-react";
+import { http } from '../lib/api'
 
-const API_URL = import.meta.env.VITE_API_URL as string;
 const DETAIL_BASE = "/producers";
 const PAGE_SIZE = 12;
 
@@ -189,28 +189,25 @@ export default function ProducersCatalog() {
   const [page, setPage] = useState(1);
 
   useEffect(() => {
-    let alive = true;
-    (async () => {
-      setLoading(true);
-      setError(null);
+    let alive = true
+    ;(async () => {
+      setLoading(true)
+      setError(null)
       try {
-        const res = await fetch(`${API_URL}/api/public/producers/`, {
-          headers: { Accept: "application/json" },
-          credentials: "omit",
-          cache: "no-store",
-        });
-        if (!res.ok) throw new Error("load");
-        const data = await res.json();
-        if (!alive) return;
-        setProducers(Array.isArray(data) ? data : []);
+        const data = await http.get<any[]>('/api/public/producers/')
+        if (!alive) return
+        setProducers(Array.isArray(data) ? data : [])
       } catch {
-        setError("Impossible de charger les producteurs.");
+        setError("Impossible de charger les producteurs.")
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    })();
-    return () => { alive = false; };
-  }, []);
+    })()
+    return () => {
+      alive = false
+    }
+  }, [])
+
 
   const producerRegions = useMemo(() => {
     const all = producers.map(producerRegionName).filter(Boolean);

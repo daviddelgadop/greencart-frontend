@@ -12,6 +12,7 @@ import {
   ChevronDown
 } from 'lucide-react'
 import BundleCard from '../components/BundleCard'
+import { http } from '../lib/api'
 
 interface Certification { code: string }
 interface Category { code: string; label: string }
@@ -289,13 +290,15 @@ export default function Shop() {
   const [sortOrder, setSortOrder] = useState<SortOrder>(initialOrder)
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL}/api/public-bundles/`)
-      .then(res => {
-        if (!res.ok) throw new Error('Erreur lors du chargement des bundles.')
-        return res.json()
-      })
-      .then(data => setBundles(data))
-      .catch(err => console.error('Erreur:', err))
+    const load = async () => {
+      try {
+        const data = await http.get<Bundle[]>('/api/public-bundles/')
+        setBundles(data || [])
+      } catch (err) {
+        console.error('Erreur lors du chargement des bundles:', err)
+      }
+    }
+    load()
   }, [])
 
   useEffect(() => {

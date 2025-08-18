@@ -4,7 +4,6 @@ import { useAuth } from '../contexts/AuthContext'
 import { toast } from 'react-toastify'
 import { http } from '../lib/api'
 
-
 interface Props {
   onShowPasswordConfirm: () => void
   password?: string
@@ -26,8 +25,17 @@ export default function ProfileTab({ onShowPasswordConfirm, password, onPassword
   const [mainAddress, setMainAddress] = useState<string | null>(null)
   const [description, setDescription] = useState('')
   const [experience, setExperience] = useState('')
-
   const [passwordChecked, setPasswordChecked] = useState(false)
+
+  const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '')
+
+  const resolveMediaUrl = (u?: string | null, bustCache = true): string | null => {
+    if (!u) return null
+    if (u.startsWith('blob:')) return u
+    if (/^https?:\/\//i.test(u)) return u
+    const abs = `${API_BASE}/${u.replace(/^\/+/, '')}`
+    return bustCache ? `${abs}?v=${Date.now()}` : abs
+  }
 
   useEffect(() => {
     if (!user) return
@@ -39,13 +47,7 @@ export default function ProfileTab({ onShowPasswordConfirm, password, onPassword
     setPublicName(user.public_display_name || '')
     setDescription(user.description_utilisateur || '')
     setExperience(user.years_of_experience?.toString() || '')
-    setAvatarUrl(
-      user.avatar
-        ? user.avatar.startsWith('http')
-          ? user.avatar
-          : `${user.avatar}`
-        : null
-    )
+    setAvatarUrl(resolveMediaUrl(user.avatar))
   }, [user])
 
   useEffect(() => {
@@ -74,7 +76,6 @@ export default function ProfileTab({ onShowPasswordConfirm, password, onPassword
       toast.warning('Non authentifié')
       return
     }
-
     if (!firstName.trim() || !lastName.trim() || !email.trim() || !dateOfBirth) {
       toast.warning('Veuillez remplir tous les champs obligatoires.')
       return
@@ -103,9 +104,9 @@ export default function ProfileTab({ onShowPasswordConfirm, password, onPassword
       await http.patch(`/api/users/${userId}/`, formData)
       toast.success('Profil mis à jour avec succès')
       setPasswordChecked(false)
-
       const me = await http.get('/api/me/')
       setUser(me)
+      setAvatarUrl(resolveMediaUrl(me?.avatar))
     } catch (e: any) {
       const detail = e?.response?.data?.detail
       toast.error(`Erreur: ${detail || 'Une erreur est survenue.'}`)
@@ -120,7 +121,6 @@ export default function ProfileTab({ onShowPasswordConfirm, password, onPassword
     if (!dateOfBirth) missing.push('Date de naissance')
     if (!publicName.trim()) missing.push('Nom affiché publiquement')
     if (!description.trim()) missing.push('Description')
-
     if (missing.length > 0) {
       toast.warning(`Veuillez remplir les champs obligatoires suivants : ${missing.join(', ')}`)
       return
@@ -128,13 +128,20 @@ export default function ProfileTab({ onShowPasswordConfirm, password, onPassword
     onShowPasswordConfirm()
   }
 
+  const handleImgError = () => setAvatarUrl(null)
+
   return (
     <div className="bg-white rounded-lg p-6 pt-3 shadow-sm">
       <div className="space-y-6">
         <div className="flex items-center space-x-4 mb-6">
           <div className="w-20 h-20 bg-dark-green rounded-full overflow-hidden flex items-center justify-center">
             {avatarUrl ? (
-              <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+              <img
+                src={avatarUrl}
+                alt="Avatar"
+                onError={handleImgError}
+                className="w-full h-full object-cover"
+              />
             ) : (
               <User className="w-10 h-10 text-pale-yellow" />
             )}

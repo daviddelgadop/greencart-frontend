@@ -1,17 +1,15 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { Mail, Facebook, Instagram, Twitter, Leaf } from 'lucide-react'
-import logo_inv from '../../images/logo_inv.png'
 
 export default function Footer() {
   return (
     <footer className="bg-dark-brown text-pale-yellow">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          {/* Logo & Description */}
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center space-x-2 mb-4">
-              <img src={logo_inv} alt="GreenCart logo" className="h-12 w-auto" />
+              <img src="/images/logo_inv.png" alt="GreenCart logo" className="h-12 w-auto" />
             </div>
             <p className="text-pale-yellow/80 mb-4 max-w-md">
               Plateforme e-commerce dédiée aux produits alimentaires locaux et à la lutte contre le gaspillage. 
@@ -33,7 +31,6 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Navigation Links */}
           <div>
             <h3 className="text-lg font-semibold mb-4">Navigation</h3>
             <ul className="space-y-2">
@@ -70,7 +67,6 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Legal Links */}
           <div>
             <h3 className="text-lg font-semibold mb-4">Informations légales</h3>
             <ul className="space-y-2">
@@ -90,15 +86,14 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-              <Link to="/sitemap" className="text-pale-yellow/80 hover:text-pale-yellow transition-colors">
-                Plan du site
-              </Link>
+                <Link to="/sitemap" className="text-pale-yellow/80 hover:text-pale-yellow transition-colors">
+                  Plan du site
+                </Link>
               </li>
             </ul>
           </div>
         </div>
 
-        {/* Bottom Bar */}
         <div className="border-t border-pale-yellow/20 mt-8 pt-8 text-center">
           <p className="text-pale-yellow/60">
             © 2025 GreenCart. Tous droits réservés. Plateforme développée avec ❤️ pour un avenir plus durable.

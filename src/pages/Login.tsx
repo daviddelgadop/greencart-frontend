@@ -2,7 +2,6 @@ import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Mail, Lock, Eye, EyeOff, Leaf } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
-import logo_min_circle from '../images/logo_min_circle.png'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -35,7 +34,7 @@ export default function Login() {
         <div className="bg-white rounded-2xl shadow-lg p-8">
           {/* Logo */}
           <div className="text-center mb-8">
-            <img src={logo_min_circle} alt="GreenCart logo" className="h-16 w-auto mx-auto mb-4" />
+            <img src="/images/logo_min_circle.png" alt="GreenCart logo" className="h-16 w-auto mx-auto mb-4" />
             <h1 className="text-2xl font-bold text-dark-green">Connexion</h1>
             <p className="text-gray-600 mt-2">
               Accédez à votre compte GreenCart

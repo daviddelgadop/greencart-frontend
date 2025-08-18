@@ -2,7 +2,6 @@ import React, { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Mail, Lock, Eye, EyeOff, User } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
-import logo_min_circle from '../images/logo_min_circle.png'
 
 export default function Register() {
   const [searchParams] = useSearchParams()
@@ -86,7 +85,7 @@ export default function Register() {
       <div className="max-w-md w-full">
         <div className="bg-white rounded-2xl shadow-lg p-8">
           <div className="text-center mb-8">
-            <img src={logo_min_circle} alt="GreenCart logo" className="h-16 w-auto mx-auto mb-4" />
+            <img src="/images/logo_min_circle.png" alt="GreenCart logo" className="h-16 w-auto mx-auto mb-4" />
             <h1 className="text-2xl font-bold text-dark-green">Créer un compte</h1>
             <p className="text-gray-600 mt-2">Rejoignez la communauté GreenCart</p>
           </div>

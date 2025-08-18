@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Search, ShoppingCart, Menu, X, User, Leaf } from 'lucide-react'
 import { useCart } from '../../contexts/CartContext'
 import { useAuth } from '../../contexts/AuthContext'
-import logo from '../../images/logo.png'
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -26,12 +25,10 @@ export default function Header() {
     <header className="fixed top-0 left-0 right-0 z-50 bg-white shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
-            <img src={logo} alt="GreenCart logo" className="h-12 w-auto" />
+            <img src="/images/logo.png" alt="GreenCart logo" className="h-12 w-auto" />
           </Link>
 
-          {/* Search Bar - Desktop */}
           <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-lg mx-8">
             <div className="relative w-full">
               <input
@@ -45,7 +42,6 @@ export default function Header() {
             </div>
           </form>
 
-          {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
             <Link to="/about" className="text-gray-700 hover:text-dark-green transition-colors">À propos</Link>
             <Link to="/shop" className="text-gray-700 hover:text-dark-green transition-colors">Boutique</Link>
@@ -54,9 +50,7 @@ export default function Header() {
             <Link to="/contact" className="text-gray-700 hover:text-dark-green transition-colors">Contact</Link>
           </nav>
 
-          {/* User Actions */}
           <div className="flex items-center space-x-4 ml-12">
-            {/* User Account */}
             {isAuthenticated ? (
               <div className="relative group">
                 <button className="flex items-center space-x-2 text-gray-700 hover:text-dark-green transition-colors">
@@ -93,7 +87,6 @@ export default function Header() {
               </Link>
             )}
 
-            {/* Cart */}
             <Link to="/cart" className="relative">
               <ShoppingCart className="w-6 h-6 text-gray-700 hover:text-dark-green transition-colors" />
               {totalItems > 0 && (
@@ -103,7 +96,6 @@ export default function Header() {
               )}
             </Link>
 
-            {/* Mobile Menu Button */}
             <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="md:hidden">
               {isMenuOpen ? <X className="w-6 h-6 text-gray-700" /> : <Menu className="w-6 h-6 text-gray-700" />}
             </button>
@@ -111,11 +103,9 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Mobile Menu */}
       {isMenuOpen && (
         <div className="md:hidden bg-white border-t">
           <div className="px-4 py-4 space-y-4">
-            {/* Mobile Search */}
             <form onSubmit={handleSearch}>
               <div className="relative">
                 <input
@@ -129,7 +119,6 @@ export default function Header() {
               </div>
             </form>
 
-            {/* Mobile Navigation Links */}
             <nav className="flex flex-col space-y-2">
               <Link to="/about" onClick={() => setIsMenuOpen(false)} className="text-gray-700 hover:text-dark-green transition-colors py-2">À propos</Link>
               <Link to="/shop" onClick={() => setIsMenuOpen(false)} className="text-gray-700 hover:text-dark-green transition-colors py-2">Boutique</Link>

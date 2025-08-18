@@ -100,20 +100,26 @@ export default function Account() {
     <div className="min-h-screen bg-pale-yellow/20 py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        <section className="mb-8">
-          <div className="rounded-3xl bg-white/90 backdrop-blur px-6 py-7 md:px-8 md:py-9 shadow-sm ring-1 ring-black/5">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-              <div>
-                <h1 className="text-2xl md:text-3xl font-bold text-dark-green tracking-tight flex items-center gap-4">
-                  <User className="w-8 h-8" />
-                  Mon compte
-                </h1>
-                <p className="mt-2 text-gray-600">
-                </p>
-              </div>
+      <section className="mb-8">
+        <div className="rounded-3xl bg-white/90 backdrop-blur px-6 py-7 md:px-8 md:py-9 shadow-sm ring-1 ring-black/5">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-dark-green tracking-tight flex items-center gap-4">
+                <User className="w-8 h-8" />
+                Mon compte
+              </h1>
+              <p className="mt-2 text-gray-600"></p>
             </div>
+            {user?.public_display_name && (
+              <div className="text-dark-green/80">
+                <span className="inline-flex items-center rounded-full bg-dark-green/10 px-3 py-1 font-medium">
+                  {user.public_display_name}
+                </span>
+              </div>
+            )}
           </div>
-        </section>
+        </div>
+      </section>
 
         <div className="flex flex-col lg:flex-row gap-8 items-start">
           {/* Sidebar */}
@@ -142,32 +148,35 @@ export default function Account() {
           </aside>
 
           {/* Main */}
-          <main className="w-full lg:flex-1">
-            <div className="bg-white rounded-2xl shadow-sm ring-1 ring-black/5 p-6 space-y-6">
+        <main className="w-full lg:flex-1">
+          <div className="bg-white rounded-2xl shadow-sm ring-1 ring-black/5 p-6">
+            <h2 className="text-2xl font-bold text-dark-green mb-6 flex items-center gap-3">
+              {currentTabDef.name}
+            </h2>
 
-              <Routes>
-                <Route index element={<Navigate to="profile" replace />} />
-                <Route
-                  path="profile"
-                  element={
-                    <ProfileTab
-                      onShowPasswordConfirm={() => setShowPasswordConfirm(true)}
-                      password={password}
-                      onPasswordValidated={() => setPassword('')}
-                      active={currentTab === 'profile'}
-                    />
-                  }
-                />
-                <Route path="address" element={<AddressTab />} />
-                <Route path="payment" element={<PaymentTab />} />
-                <Route path="orders" element={<OrdersTab />} />
-                <Route path="favorites" element={<FavoritesTab />} />
-                <Route path="impact" element={<ImpactTab />} />
-                <Route path="settings" element={<SettingsTab />} />
-                <Route path="*" element={<Navigate to="profile" replace />} />
-              </Routes>
-            </div>
-          </main>
+            <Routes>
+              <Route index element={<Navigate to="profile" replace />} />
+              <Route
+                path="profile"
+                element={
+                  <ProfileTab
+                    onShowPasswordConfirm={() => setShowPasswordConfirm(true)}
+                    password={password}
+                    onPasswordValidated={() => setPassword('')}
+                    active={currentTab === 'profile'}
+                  />
+                }
+              />
+              <Route path="address" element={<AddressTab />} />
+              <Route path="payment" element={<PaymentTab />} />
+              <Route path="orders" element={<OrdersTab />} />
+              <Route path="favorites" element={<FavoritesTab />} />
+              <Route path="impact" element={<ImpactTab />} />
+              <Route path="settings" element={<SettingsTab />} />
+              <Route path="*" element={<Navigate to="profile" replace />} />
+            </Routes>
+          </div>
+        </main>
         </div>
       </div>
 

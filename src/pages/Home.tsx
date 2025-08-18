@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ShoppingCart, Users, Leaf, TrendingDown, ArrowRight, Star } from 'lucide-react'
 import BundleCard from '../components/BundleCard'
+import { http } from '../lib/api'
 
 type City = { name: string; postal_code: string }
 type CompanyAddress = { city: City }
@@ -36,9 +37,7 @@ export default function Home() {
     let alive = true
     ;(async () => {
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/public-bundles/`)
-        if (!res.ok) throw new Error('failed')
-        const data = (await res.json()) as Bundle[]
+        const data = await http.get<Bundle[]>('/api/public-bundles/')
         if (!alive) return
         setBundles(Array.isArray(data) ? data : [])
       } catch {
@@ -51,6 +50,7 @@ export default function Home() {
       alive = false
     }
   }, [])
+
 
   const featured = useMemo(() => {
     const hasDiscount = (b: Bundle) => {

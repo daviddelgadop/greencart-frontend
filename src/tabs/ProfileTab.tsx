@@ -4,7 +4,6 @@ import { useAuth } from '../contexts/AuthContext'
 import { toast } from 'react-toastify'
 import { http } from '../lib/api'
 
-const API_URL = import.meta.env.VITE_API_URL
 
 interface Props {
   onShowPasswordConfirm: () => void
@@ -44,10 +43,9 @@ export default function ProfileTab({ onShowPasswordConfirm, password, onPassword
       user.avatar
         ? user.avatar.startsWith('http')
           ? user.avatar
-          : `${API_URL}${user.avatar}`
+          : `${user.avatar}`
         : null
     )
-    // If you later expose a structured main address on the user, format and set it here.
   }, [user])
 
   useEffect(() => {

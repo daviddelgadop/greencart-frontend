@@ -12,9 +12,6 @@ import { http } from '../lib/api'
 import { useAuth } from '../contexts/AuthContext'
 import type { CartItem as UITypesCartItem } from '../types/CartItem'
 
-const API_URL = import.meta.env.VITE_API_URL as string
-
-// === DEBUG SWITCH ===
 const DEBUG_MEDIA = true
 const logMedia = (...args: any[]) => {
   if (DEBUG_MEDIA) console.log('[CartContext][media]', ...args)
@@ -98,49 +95,40 @@ type CartContextType = {
 
 const CartContext = createContext<CartContextType | undefined>(undefined)
 
-// === INSTRUMENTED RESOLVER ===
-function resolveImage(url?: string | null): string {
-  if (DEBUG_MEDIA) console.groupCollapsed('[resolveImage] in:', url)
-  if (!url) {
-    if (DEBUG_MEDIA) console.groupEnd()
-    return ''
-  }
-  // Passthrough for absolute URLs
-  if (/^https?:\/\//i.test(url)) {
-    if (DEBUG_MEDIA) {
-      console.log('absolute passthrough:', url)
-      console.trace()
-      console.groupEnd()
-    }
-    return url
-  }
+//function resolveImage(url?: string | null): string {
+//  if (DEBUG_MEDIA) console.groupCollapsed('[resolveImage] in:', url)
+//  if (!url) {
+//    if (DEBUG_MEDIA) console.groupEnd()
+//    return ''
+//  }
+//  if (/^https?:\/\//i.test(url)) {
+//    if (DEBUG_MEDIA) {
+//      console.log('absolute passthrough:', url)
+//      console.groupEnd()
+//    }
+//    return url
+//  }
+//
+//  let u = url.startsWith('/') ? url : `/${url}`
+//  u = u.replace(/\/media\/media\//g, '/media/')
+//  if (!/^\/media\//.test(u)) {
+//    u = u.startsWith('/media')
+//      ? u.replace(/^\/media(?!\/)/, '/media/')
+//      : `/media${u}`
+//  }
 
-  let u = url.startsWith('/') ? url : `/${url}`
-  if (DEBUG_MEDIA) console.log('step1 ensure leading /:', u)
-
-  // Normalize duplicated /media/media/
-  u = u.replace(/\/media\/media\//g, '/media/')
-  if (DEBUG_MEDIA) console.log('step2 normalize /media/media/:', u)
-
-  // Ensure single /media/ prefix
-  if (!/^\/media\//.test(u)) {
-    u = u.startsWith('/media')
-      ? u.replace(/^\/media(?!\/)/, '/media/')
-      : `/media${u}`
-  }
-  if (DEBUG_MEDIA) console.log('step3 ensure /media/ prefix:', u)
-
-  const finalUrl = `${API_URL}${u}`
-  if (DEBUG_MEDIA) {
-    if (/\/media\/media\//.test(finalUrl)) {
-      console.warn('DOUBLE MEDIA DETECTED after resolve:', finalUrl)
-    }
-    console.log('out:', finalUrl)
-    console.trace()
-    console.groupEnd()
-  }
-  return finalUrl
-}
+//  const base = http.defaults?.baseURL || ''
+//  const finalUrl = `${base.replace(/\/+$/, '')}${u}`
+//
+//  if (DEBUG_MEDIA) {
+//    if (/\/media\/media\//.test(finalUrl)) {
+//      console.warn('DOUBLE MEDIA DETECTED after resolve:', finalUrl)
+//    }
+//    console.log('out:', finalUrl)
+//    console.groupEnd()
+//  }
+//  return finalUrl
+//  }
 
 function getGuestKey() {
   let key = localStorage.getItem('guest_session_key')
@@ -161,7 +149,6 @@ function isFiniteNumber(x: unknown): x is number {
   return typeof x === 'number' && Number.isFinite(x)
 }
 
-// === INSTRUMENTED MAPPER ===
 function mapServerItems(serverItems: any[]): CartItem[] {
   return (serverItems || []).map((it: any) => {
     const bundleId = Number(it.bundle_id ?? it.bundle)
@@ -187,28 +174,9 @@ function mapServerItems(serverItems: any[]): CartItem[] {
       ? it.bundle_snapshot.images[0]?.image
       : undefined
 
-    const imageRaw =
-      rawA ??
-      rawB ??
-      rawC ??
-      rawArray0 ??
-      ''
-
-    const image = resolveImage(imageRaw)
-
-    if (DEBUG_MEDIA) {
-      console.groupCollapsed('[mapServerItems] item', serverItemId, 'bundle', bundleId)
-      console.log('rawA bundle_image:', rawA)
-      console.log('rawB bundle_image_url:', rawB)
-      console.log('rawC snapshot.image:', rawC)
-      console.log('rawArray0 snapshot.images[0].image:', rawArray0)
-      console.log('chosen imageRaw:', imageRaw)
-      console.log('resolved image:', image)
-      if (/\/media\/media\//.test(String(imageRaw)) || /\/media\/media\//.test(image)) {
-        console.warn('DOUBLE MEDIA FOUND in mapper', { imageRaw, image })
-      }
-      console.groupEnd()
-    }
+    const imageRaw = rawA ?? rawB ?? rawC ?? rawArray0 ?? ''
+    //const image = resolveImage(imageRaw)
+    const image = imageRaw
 
     const qty = Math.max(1, Number(it.quantity ?? 1))
     const avoidedWaste = Number(it.avoided_waste_kg ?? 0)
@@ -240,18 +208,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState)
 
   const reload = async () => {
-    const data = await http.get<{ items: any[] }>('/api/cart/', withCartHeaders())
-    if (DEBUG_MEDIA) {
-      logMedia('[reload] raw server items (images):',
-        (data.items || []).map(i => ({
-          id: i.id,
-          bundle: i.bundle,
-          bundle_image: i.bundle_image,
-          bundle_image_url: i.bundle_image_url,
-          snapshot_image: i.bundle_snapshot?.image
-        }))
-      )
-    }
+    const data = await http.get<{ items: any[] }>('api/cart/', withCartHeaders())
     dispatch({ type: 'REPLACE_CART', payload: { items: mapServerItems(data.items) } })
   }
 
@@ -259,43 +216,25 @@ export function CartProvider({ children }: { children: ReactNode }) {
     let alive = true
     ;(async () => {
       try {
-        const data = await http.get<{ items: any[] }>('/api/cart/', withCartHeaders())
+        const data = await http.get<{ items: any[] }>('api/cart/', withCartHeaders())
         if (!alive) return
-        if (DEBUG_MEDIA) {
-          logMedia('[initial load] raw server items (images):',
-            (data.items || []).map(i => ({
-              id: i.id,
-              bundle: i.bundle,
-              bundle_image: i.bundle_image,
-              bundle_image_url: i.bundle_image_url,
-              snapshot_image: i.bundle_snapshot?.image
-            }))
-          )
-        }
         dispatch({ type: 'REPLACE_CART', payload: { items: mapServerItems(data.items) } })
       } catch {}
     })()
-    return () => {
-      alive = false
-    }
+    return () => { alive = false }
   }, [])
 
-  // DEBUG: log images in state
   useEffect(() => {
     if (!DEBUG_MEDIA) return
-    console.groupCollapsed('[state] items images after update')
+    //console.groupCollapsed('[state] items images after update')
     state.items.forEach(it => {
-      console.log(`item bundle=${it.id} serverItemId=${it.serverItemId} image=`, it.image)
-      if (/\/media\/media\//.test(String(it.image))) {
-        console.warn('DOUBLE MEDIA IN STATE', it)
-      }
+    //  console.log(`item bundle=${it.id} serverItemId=${it.serverItemId} image=`, it.image)
     })
-    console.groupEnd()
+    //console.groupEnd()
   }, [state.items])
 
   const mergedOnceRef = useRef(false)
 
-  // Allow merge to run again after a future login (reset flag on logout)
   useEffect(() => {
     if (!user) mergedOnceRef.current = false
   }, [user])
@@ -305,7 +244,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (!user || mergedOnceRef.current) return
       try {
         await http.post(
-          '/api/cart/merge/',
+          'api/cart/merge/',
           {},
           { headers: { 'Content-Type': 'application/json', 'X-Session-Key': getGuestKey() } }
         )
@@ -317,11 +256,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     })()
   }, [user])
 
-  // Instant visual clear on `cart:reset` (e.g., after logout)
   useEffect(() => {
-    const onReset = () => {
-      dispatch({ type: 'CLEAR_CART' })
-    }
+    const onReset = () => dispatch({ type: 'CLEAR_CART' })
     window.addEventListener('cart:reset', onReset as EventListener)
     return () => window.removeEventListener('cart:reset', onReset as EventListener)
   }, [])
@@ -343,9 +279,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const payload: Record<string, unknown> = { bundle: bundleId, quantity }
       if (isFiniteNumber(impact?.avoided_waste_kg)) payload.avoided_waste_kg = impact!.avoided_waste_kg
       if (isFiniteNumber(impact?.avoided_co2_kg)) payload.avoided_co2_kg = impact!.avoided_co2_kg
-
-      if (DEBUG_MEDIA) logMedia('[add] POST /api/cart/items payload:', payload)
-      await http.post('/api/cart/items/', payload, {
+      await http.post('api/cart/items/', payload, {
         headers: { 'Content-Type': 'application/json', ...(withCartHeaders().headers || {}) },
       })
       await reload()
@@ -361,11 +295,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (isFiniteNumber(impact?.avoided_waste_kg)) payload.avoided_waste_kg = impact!.avoided_waste_kg
       if (isFiniteNumber(impact?.avoided_co2_kg)) payload.avoided_co2_kg = impact!.avoided_co2_kg
       if (item.producerName) payload.producer_name = item.producerName
-      // If you want to force the exact snapshot image the user saw:
-      // if (item.image) payload.bundle_image_url = item.image
-
-      if (DEBUG_MEDIA) logMedia('[addToCart] POST /api/cart/items payload:', payload)
-      await http.post('/api/cart/items/', payload, {
+      await http.post('api/cart/items/', payload, {
         headers: { 'Content-Type': 'application/json', ...(withCartHeaders().headers || {}) },
       })
       await reload()
@@ -377,49 +307,37 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const updateQuantity: CartContextType['updateQuantity'] = async (bundleId, quantity, impact) => {
     const next = Math.max(1, quantity)
     const prev = state.items.find(i => i.id === bundleId)?.quantity ?? 1
-
     dispatch({ type: 'UPDATE_QUANTITY', payload: { id: bundleId, quantity: next } })
 
     try {
       let serverItemId = state.items.find(i => i.id === bundleId)?.serverItemId
-
       if (!serverItemId) {
-        const data = await http.get<{ items: any[] }>('/api/cart/', withCartHeaders())
+        const data = await http.get<{ items: any[] }>('api/cart/', withCartHeaders())
         const fresh = mapServerItems(data.items)
         dispatch({ type: 'REPLACE_CART', payload: { items: fresh } })
         serverItemId = fresh.find(i => i.id === bundleId)?.serverItemId
       }
-
       if (serverItemId) {
         const current = state.items.find(i => i.id === bundleId)
         const body: Record<string, unknown> = { quantity: next }
         if (isFiniteNumber(impact?.avoided_waste_kg)) body.avoided_waste_kg = impact!.avoided_waste_kg
         if (isFiniteNumber(impact?.avoided_co2_kg)) body.avoided_co2_kg = impact!.avoided_co2_kg
         if (current?.producerName) body.producer_name = current.producerName
-
-        if (DEBUG_MEDIA) logMedia('[updateQuantity] PATCH /api/cart/item body:', body)
-        await http.patch(`/api/cart/item/${serverItemId}/`, body, {
+        await http.patch(`api/cart/item/${serverItemId}/`, body, {
           headers: { 'Content-Type': 'application/json', ...(withCartHeaders().headers || {}) },
         })
       } else {
-        const current = state.items.find(i => i.id === bundleId)
         const payload: Record<string, unknown> = { bundle: bundleId, quantity: next }
         if (isFiniteNumber(impact?.avoided_waste_kg)) payload.avoided_waste_kg = impact!.avoided_waste_kg
         if (isFiniteNumber(impact?.avoided_co2_kg)) payload.avoided_co2_kg = impact!.avoided_co2_kg
-        if (current?.producerName) payload.producer_name = current.producerName
-
-        if (DEBUG_MEDIA) logMedia('[updateQuantity] POST /api/cart/items payload (fallback):', payload)
-        await http.post('/api/cart/items/', payload, {
+        await http.post('api/cart/items/', payload, {
           headers: { 'Content-Type': 'application/json', ...(withCartHeaders().headers || {}) },
         })
       }
-
       await reload()
     } catch {
       dispatch({ type: 'UPDATE_QUANTITY', payload: { id: bundleId, quantity: prev } })
-      try {
-        await reload()
-      } catch {}
+      try { await reload() } catch {}
     }
   }
 
@@ -428,10 +346,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'REMOVE_FROM_CART', payload: bundleId })
     try {
       const serverItemId = backup.find(i => i.id === bundleId)?.serverItemId
-      if (serverItemId) {
-        if (DEBUG_MEDIA) logMedia('[removeFromCart] DELETE itemId=', serverItemId)
-        await http.delete(`/api/cart/item/${serverItemId}/`, withCartHeaders())
-      }
+      if (serverItemId) await http.delete(`api/cart/item/${serverItemId}/`, withCartHeaders())
       await reload()
     } catch {
       dispatch({ type: 'REPLACE_CART', payload: { items: backup } })
@@ -442,8 +357,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const backup = state.items
     dispatch({ type: 'CLEAR_CART' })
     try {
-      if (DEBUG_MEDIA) logMedia('[clearCart] DELETE /api/cart/clear')
-      await http.delete('/api/cart/clear/', withCartHeaders())
+      await http.delete('api/cart/clear/', withCartHeaders())
       await reload()
     } catch {
       dispatch({ type: 'REPLACE_CART', payload: { items: backup } })

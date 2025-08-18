@@ -6,8 +6,8 @@ import {
 } from 'lucide-react'
 import { useCart } from '../contexts/CartContext'
 import toast from 'react-hot-toast'
+import { http } from '../lib/api'
 
-const API_URL = import.meta.env.VITE_API_URL
 const FREE_SHIPPING_THRESHOLD = Number(import.meta.env.VITE_FREE_SHIPPING_THRESHOLD)
 
 interface ProductBundleItem {
@@ -84,32 +84,46 @@ export default function BundleDetail() {
     useState<'rated_desc' | 'rated_asc' | 'rating_desc' | 'rating_asc'>('rated_desc')
 
   useEffect(() => {
-    if (id) {
-      fetch(`${API_URL}/api/public-bundles/${id}/`)
-        .then(res => res.json())
-        .then(data => setBundle(data))
-        .catch(err => console.error('Erreur lors du chargement du produit:', err))
+    const load = async () => {
+      try {
+        if (!id) return
+        const data = await http.get(`/api/public-bundles/${id}/`)
+        setBundle(data)
+      } catch (err) {
+        console.error('Erreur lors du chargement du produit:', err)
+      }
     }
+    load()
   }, [id])
 
   useEffect(() => {
     if (!accessToken || !id || !bundle) return
+
     const loadFavoriteStatus = async () => {
       try {
-        const resp = await fetch(`${API_URL}/api/favorites/`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` }
+        const data = await http.get<any[]>('/api/favorites/', {
+          headers: { Authorization: `Bearer ${accessToken}` },
         })
-        if (!resp.ok) return
-        const data = await resp.json()
-        const found = (Array.isArray(data) ? data : []).find((f: any) => f?.bundle?.id === Number(bundle.id))
-        if (found) { setIsFavorite(true); setFavoriteId(found.id) } else { setIsFavorite(false); setFavoriteId(null) }
+
+        const found = (Array.isArray(data) ? data : []).find(
+          (f: any) => f?.bundle?.id === Number(bundle.id)
+        )
+
+        if (found) {
+          setIsFavorite(true)
+          setFavoriteId(found.id)
+        } else {
+          setIsFavorite(false)
+          setFavoriteId(null)
+        }
       } catch (e) {
         console.error('Erreur lors de la récupération des favoris:', e)
       }
     }
+
     loadFavoriteStatus()
   }, [accessToken, id, bundle])
+
 
   useEffect(() => {
     if (bundle) setQuantity(q => Math.min(q, Number(bundle.stock) || 0) || 1)
@@ -210,26 +224,37 @@ export default function BundleDetail() {
     setFavLoading(true)
     try {
       if (isFavorite && favoriteId) {
-        const resp = await fetch(`${API_URL}/api/favorites/${favoriteId}/`, {
-          method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${accessToken}` }
-        })
-        if (resp.status === 204 || resp.status === 200) { setIsFavorite(false); setFavoriteId(null); toast.success('Retiré de vos favoris') }
-        else if (resp.status === 403) { toast.error("Vous n'avez pas l'autorisation pour supprimer ce favori.") }
-        else { toast.error('Impossible de retirer des favoris.') }
+        try {
+          await http.delete(`/api/favorites/${favoriteId}/`, {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          })
+          setIsFavorite(false)
+          setFavoriteId(null)
+          toast.success('Retiré de vos favoris')
+        } catch (err: any) {
+          if (err?.response?.status === 403) {
+            toast.error("Vous n'avez pas l'autorisation pour supprimer ce favori.")
+          } else {
+            toast.error('Impossible de retirer des favoris.')
+          }
+        }
       } else {
-        const resp = await fetch(`${API_URL}/api/favorites/`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
-          body: JSON.stringify({ bundle_id: bundle.id })
-        })
-        if (resp.status === 201 || resp.status === 200) {
-          const data = await resp.json()
-          setIsFavorite(true); setFavoriteId(data?.id ?? null); toast.success('Ajouté à vos favoris')
-        } else if (resp.status === 400) {
-          setIsFavorite(true); toast('Déjà dans vos favoris', { icon: '❤️' })
-        } else {
-          toast.error("Impossible d'ajouter aux favoris.")
+        try {
+          const data = await http.post(
+            '/api/favorites/',
+            { bundle_id: bundle.id },
+            { headers: { Authorization: `Bearer ${accessToken}` } }
+          )
+          setIsFavorite(true)
+          setFavoriteId(data?.id ?? null)
+          toast.success('Ajouté à vos favoris')
+        } catch (err: any) {
+          if (err?.response?.status === 400) {
+            setIsFavorite(true)
+            toast('Déjà dans vos favoris', { icon: '❤️' })
+          } else {
+            toast.error("Impossible d'ajouter aux favoris.")
+          }
         }
       }
     } catch (e) {
@@ -239,6 +264,7 @@ export default function BundleDetail() {
       setFavLoading(false)
     }
   }
+
 
   const producerAvgRaw = Number(bundle?.producer_data?.avg_rating)
   const producerCountRaw = Number(bundle?.producer_data?.ratings_count ?? 0)

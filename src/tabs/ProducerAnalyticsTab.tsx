@@ -30,7 +30,6 @@ type AIPreview = {
   ai_output: Recommendation[];
 };
 
-const API_URL = import.meta.env.VITE_API_URL as string;
 const USE_FORECAST_IA = (import.meta.env.VITE_FORECAST_IA as string) === 'true';
 
 function pctLabel(n: number) {
@@ -47,30 +46,31 @@ export default function AnalyticsTab() {
 
   useEffect(() => {
     (async () => {
-      setLoading(true);
-      setError(null);
+      setLoading(true)
+      setError(null)
       try {
         if (USE_FORECAST_IA) {
           const [analytics, ai] = await Promise.all([
-            http.get<AnalyticsPayload>(`${API_URL}/api/producer/analytics/`),
-            http.get<AIPreview>(`${API_URL}/api/producer/ai-preview/`),
-          ]);
-          setForecasts(Array.isArray(analytics?.seasonal_forecasts) ? analytics.seasonal_forecasts : []);
-          setClusters(analytics?.clusters ?? null);
-          setRecs(Array.isArray(ai?.ai_output) ? ai.ai_output : []);
+            http.get<AnalyticsPayload>('/api/producer/analytics/'),
+            http.get<AIPreview>('/api/producer/ai-preview/')
+          ])
+          setForecasts(Array.isArray(analytics?.seasonal_forecasts) ? analytics.seasonal_forecasts : [])
+          setClusters(analytics?.clusters ?? null)
+          setRecs(Array.isArray(ai?.ai_output) ? ai.ai_output : [])
         } else {
-          const analytics = await http.get<AnalyticsPayload>(`${API_URL}/api/producer/analytics/`);
-          setForecasts(Array.isArray(analytics?.seasonal_forecasts) ? analytics.seasonal_forecasts : []);
-          setRecs(Array.isArray(analytics?.recommendations) ? analytics.recommendations : []);
-          setClusters(analytics?.clusters ?? null);
+          const analytics = await http.get<AnalyticsPayload>('/api/producer/analytics/')
+          setForecasts(Array.isArray(analytics?.seasonal_forecasts) ? analytics.seasonal_forecasts : [])
+          setRecs(Array.isArray(analytics?.recommendations) ? analytics.recommendations : [])
+          setClusters(analytics?.clusters ?? null)
         }
       } catch {
-        setError('Erreur lors du chargement.');
+        setError('Erreur lors du chargement.')
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    })();
-  }, []);
+    })()
+  }, [])
+
 
   const top3 = useMemo(() => forecasts.slice(0, 3), [forecasts]);
 

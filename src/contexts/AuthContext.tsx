@@ -1,6 +1,5 @@
-/// <reference types="vite/client" />
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { http } from '../lib/api'
 
 interface User {
   id: string
@@ -44,8 +43,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-const API_URL = import.meta.env.VITE_API_URL
-
 function getOrCreateGuestKey(): string {
   let key = localStorage.getItem('cart_session_key')
   if (!key) {
@@ -74,13 +71,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return
       }
       try {
-        const res = await fetch(`${API_URL}/api/me/`, { headers: { Authorization: `Bearer ${token}` } })
-        if (res.ok) {
-          const user = await res.json()
-          setAuthState({ user, isLoading: false })
-        } else {
-          logout()
-        }
+        const user = await http.get<User>('/api/me/', {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        setAuthState({ user, isLoading: false })
       } catch {
         logout()
       }
@@ -91,37 +85,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     setAuthState(prev => ({ ...prev, isLoading: true }))
     try {
-      const res = await fetch(`${API_URL}/api/auth/token/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+      const data = await http.post<{ access: string; refresh: string }>('/api/auth/token/', {
+        email,
+        password,
       })
-      if (!res.ok) throw new Error('Échec de la connexion')
-      const data = await res.json()
 
       localStorage.setItem('access', data.access)
       localStorage.setItem('refresh', data.refresh)
 
-      const profileRes = await fetch(`${API_URL}/api/me/`, { headers: { Authorization: `Bearer ${data.access}` } })
-      if (!profileRes.ok) throw new Error('Échec de la récupération du profil')
-      const user = await profileRes.json()
+      const user = await http.get<User>('/api/me/', {
+        headers: { Authorization: `Bearer ${data.access}` }
+      })
       localStorage.setItem('user', JSON.stringify(user))
 
       const guestKey = getOrCreateGuestKey()
       try {
-        await fetch(`${API_URL}/api/cart/merge/`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${data.access}`,
-            'X-Session-Key': guestKey
-          },
-          body: JSON.stringify({})
-        })
+        await http.post(
+          '/api/cart/merge/',
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${data.access}`,
+              'X-Session-Key': guestKey,
+            },
+          }
+        )
       } catch {}
 
       setAuthState({ user, isLoading: false })
-      // window.dispatchEvent(new CustomEvent('cart:reload'))
     } catch (e) {
       logout()
       throw e
@@ -138,12 +129,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     public_display_name: string
   ) => {
     setAuthState(prev => ({ ...prev, isLoading: true }))
-    const res = await fetch(`${API_URL}/api/auth/register/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ first_name, last_name, email, password, type, date_of_birth, public_display_name })
+    await http.post('/api/auth/register/', {
+      first_name,
+      last_name,
+      email,
+      password,
+      type,
+      date_of_birth,
+      public_display_name,
     })
-    if (!res.ok) throw new Error('Inscription échouée')
     await login(email, password)
   }
 
@@ -166,7 +160,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     login,
     register,
     logout,
-    setUser
+    setUser,
   }
 
   return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>

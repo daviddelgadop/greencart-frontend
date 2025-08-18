@@ -17,7 +17,7 @@ export default function Terms() {
                 <h1 className="text-2xl md:text-3xl font-bold text-dark-green tracking-tight">
                   Conditions Générales d'Utilisation et de Vente
                 </h1>
-                <p className="mt-2 text-gray-600">Dernière mise à jour : 15 janvier 2025</p>
+                <p className="mt-2 text-gray-600">Dernière mise à jour : 15 août 2025</p>
               </div>
             </div>
           </div>

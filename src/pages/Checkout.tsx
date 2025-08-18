@@ -5,7 +5,6 @@ import { useNavigate } from 'react-router-dom'
 import { MapPin, CreditCard, FileText } from 'lucide-react'
 import { http } from '../lib/api'
 
-const API_URL = import.meta.env.VITE_API_URL
 
 const FREE_SHIPPING_THRESHOLD = Number(import.meta.env.VITE_FREE_SHIPPING_THRESHOLD)
 const BASE_SHIPPING_COST = Number(import.meta.env.VITE_BASE_SHIPPING_COST || 0)
@@ -147,10 +146,10 @@ export default function Checkout() {
       })),
     }
 
-    try {
-      const data = await http.post(`${API_URL}/api/orders/`, orderPayload, {
-        headers: { 'Content-Type': 'application/json' },
-      })
+  try {
+    const data = await http.post('/api/orders/', orderPayload, {
+      headers: { 'Content-Type': 'application/json' },
+    })
       // On success, clear cart using the context (this also syncs with backend)
       await clearCart()
       navigate('/confirmation')

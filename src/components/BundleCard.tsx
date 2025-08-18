@@ -3,25 +3,25 @@ import { Link } from 'react-router-dom'
 import { MapPin, Leaf, ShoppingCart, Package, Calendar, Star } from 'lucide-react'
 import { useCart } from '../contexts/CartContext'
 import toast from 'react-hot-toast'
+import { http } from '../lib/api'
 
-const API_URL = import.meta.env.VITE_API_URL as string
 
 interface BundleCardProps {
   bundle: any
   viewMode: 'grid' | 'list'
 }
 
-function resolveImage(url?: string | null): string {
-  if (!url) return ''
-  if (/^https?:\/\//i.test(url)) return url
-  let u = url.startsWith('/') ? url : `/${url}`
-  u = u.replace(/\/media\/media\//g, '/media/')
-  if (!u.startsWith('/media/')) {
-    if (u.startsWith('/media')) u = u.replace(/^\/media(?!\/)/, '/media/')
-    else u = `/media${u}`
-  }
-  return `${API_URL}${u}`
-}
+//function resolveImage(url?: string | null): string {
+//  if (!url) return ''
+//  if (/^https?:\/\//i.test(url)) return url
+//  let u = url.startsWith('/') ? url : `/${url}`
+//  u = u.replace(/\/media\/media\//g, '/media/')
+//  if (!u.startsWith('/media/')) {
+//    if (u.startsWith('/media')) u = u.replace(/^\/media(?!\/)/, '/media/')
+//    else u = `/media${u}`
+//  }
+//  return `${API_URL}${u}`
+//}
 
 function StarsDisplay({ value = 0, size = 16 }: { value?: number; size?: number }) {
   const clamped = Math.max(0, Math.min(5, value))
@@ -58,7 +58,8 @@ export default function BundleCard({ bundle, viewMode }: BundleCardProps) {
     bundle?.images?.[0]?.image ||
     bundle?.image ||
     ''
-  const image = resolveImage(rawImage)
+//  const image = resolveImage(rawImage)
+  const image = rawImage
 
   const discount = Number(bundle?.discounted_percentage || 0)
   const canBuy = Number(bundle?.stock) > 0

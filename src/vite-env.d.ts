@@ -13,6 +13,7 @@ interface ImportMetaEnv {
   readonly VITE_FORECAST_IA: string
   readonly VITE_DASHBOARD_PRODUCER: string
   readonly VITE_DASHBOARD_ADMIN: string
+  readonly VITE_PASSWORD_CONFIRM_USERS: string
 }
 
 interface ImportMeta {

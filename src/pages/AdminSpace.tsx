@@ -1,13 +1,15 @@
 import React from 'react'
 import { NavLink, Routes, Route, Navigate, useLocation } from 'react-router-dom'
-import { Newspaper, Leaf } from 'lucide-react'
+import { Newspaper, Leaf, Users as UsersIcon } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import BlogAdminTab from '../tabs/BlogAdminTab'
+import AdminUsersTab from '../tabs/AdminUsersTab'
 
-type TabId = 'blog'
+type TabId = 'blog' | 'users'
 
 const tabs: { id: TabId; name: string; icon: any }[] = [
   { id: 'blog', name: 'Blog', icon: Newspaper },
+  { id: 'users', name: 'Users', icon: UsersIcon },
 ]
 
 export default function AdminSpace() {
@@ -76,6 +78,7 @@ export default function AdminSpace() {
               <Routes>
                 <Route index element={<Navigate to="blog" replace />} />
                 <Route path="blog" element={<BlogAdminTab />} />
+                <Route path="users" element={<AdminUsersTab />} />
               </Routes>
             </div>
           </main>

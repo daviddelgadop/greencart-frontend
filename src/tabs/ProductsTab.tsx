@@ -112,18 +112,17 @@ export default function ProductsTab() {
     { value: 'l', label: 'Litre' },
     { value: 'cl', label: 'Centilitre' },
     { value: 'boîte', label: 'Boîte' },
-    { value: 'barquette', label: 'Barquette' },
     { value: 'botte', label: 'Botte' },
     { value: 'tête', label: 'Tête' },
     { value: 'gobelet', label: 'Gobelet' },
-    { value: 'pack', label: 'Pack' },
-    { value: 'pot', label: 'Pot' },
-    { value: 'sachet', label: 'Sachet' },
     { value: 'bouteille 75 cl', label: 'Bouteille 75 cl' },
     { value: 'bouteille 50 cl', label: 'Bouteille 50 cl' },
     { value: 'bouteille 25 cl', label: 'Bouteille 25 cl' },
     { value: 'bouteille 1 l', label: 'Bouteille 1 l' },
   ]
+
+
+
   const ECO_SCORE_OPTIONS: { value: string; label: string }[] = [
     { value: 'A', label: 'A (Très faible impact)' },
     { value: 'B', label: 'B (Faible impact)' },

@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Search, ShoppingCart, Menu, X, User, Leaf } from 'lucide-react'
+import { Search, ShoppingCart, Menu, X, User } from 'lucide-react'
 import { useCart } from '../../contexts/CartContext'
 import { useAuth } from '../../contexts/AuthContext'
 
@@ -13,9 +13,11 @@ export default function Header() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
-    if (searchQuery.trim()) {
-      navigate(`/shop?search=${encodeURIComponent(searchQuery)}`)
+    const q = searchQuery.trim()
+    if (q) {
+      navigate(`/shop?search=${encodeURIComponent(q)}`)
       setSearchQuery('')
+      setIsMenuOpen(false)
     }
   }
 
@@ -122,6 +124,7 @@ export default function Header() {
             <nav className="flex flex-col space-y-2">
               <Link to="/about" onClick={() => setIsMenuOpen(false)} className="text-gray-700 hover:text-dark-green transition-colors py-2">À propos</Link>
               <Link to="/shop" onClick={() => setIsMenuOpen(false)} className="text-gray-700 hover:text-dark-green transition-colors py-2">Boutique</Link>
+              <Link to="/producers" onClick={() => setIsMenuOpen(false)} className="text-gray-700 hover:text-dark-green transition-colors py-2">Producteurs</Link>
               <Link to="/blog" onClick={() => setIsMenuOpen(false)} className="text-gray-700 hover:text-dark-green transition-colors py-2">Blog</Link>
               <Link to="/contact" onClick={() => setIsMenuOpen(false)} className="text-gray-700 hover:text-dark-green transition-colors py-2">Contact</Link>
             </nav>

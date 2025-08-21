@@ -26,18 +26,16 @@ const fmtEur = (n: number) => `${n.toFixed(2)}€`
 const fmtDateTime = (s?: string) => (s ? new Date(s).toLocaleString('fr-FR') : '')
 const fmtDate = (s?: string) => (s ? new Date(s).toLocaleDateString('fr-FR') : '')
 
-
 const VerticalTick: React.FC<{
-    x?: number;
-    y?: number;
-    payload?: { value?: string };
-  }> = ({ x = 0, y = 0, payload }) => {
-  const raw = String(payload?.value ?? '');
-  const label = raw.length > 18 ? raw.slice(0, 18) + '…' : raw;
-
+  x?: number;
+  y?: number;
+  payload?: { value?: string };
+}> = ({ x = 0, y = 0, payload }) => {
+  const raw = String(payload?.value ?? '')
+  const label = raw.length > 18 ? raw.slice(0, 18) + '…' : raw
   return (
     <g transform={`translate(${x},${y})`}>
-    <text dy={4} dx={-4} textAnchor="end" transform="rotate(-35)">{label}</text>
+      <text dy={4} dx={-4} textAnchor="end" transform="rotate(-35)">{label}</text>
     </g>
   )
 }
@@ -153,7 +151,7 @@ export default function ProducerDashboardTab() {
       if (tab === 'payments') return `${BASE}/payments/deep/?${params}`
       if (tab === 'cohorts') return `${BASE}/cohorts/monthly/?bucket=${bucket}&${params}`
       if (tab === 'geo') return `${BASE}/geo/deep/?level=${geoLevel}&${params}`
-      if (tab === 'reviews') return `${BASE}/evaluations/deep/?kind=all&bucket=${bucket}&${params}`
+      if (tab === 'reviews') return `${BASE}/evaluations/deep/?kind=all&${params}`
       if (tab === 'category') return `${BASE}/cross/certifications-performance/?${params}`
       return ''
     }
@@ -202,49 +200,47 @@ export default function ProducerDashboardTab() {
         { icon: <Leaf className="w-4 h-4" />, label: 'Livrées', value: String(asNum(s.by_status?.delivered)) },
       )
     } else if (tab === 'carts') {
-        const rowsForCarts: any[] = Array.isArray(data?.rows) ? data.rows : [];
-        const isItem = rowsForCarts.length > 0 && !!rowsForCarts[0]?.cart_item_id && !Array.isArray(rowsForCarts[0]?.items);
-
-        let totalSomme = 0;
-        if (isItem) {
-          for (const r of rowsForCarts) {
-            const qty = asNum(r.quantity, 0);
-            const line = r.line_total != null ? asNum(r.line_total) : null;
-            const unit = line != null ? null : (r.unit_price != null ? asNum(r.unit_price) : null);
-            const sum = line != null ? line : (unit != null ? unit * qty : 0);
-            totalSomme += sum;
-          }
-        } else {
-          for (const r of rowsForCarts) {
-            if (r.amount != null && !isNaN(Number(r.amount))) {
-              totalSomme += Number(r.amount);
-            } else {
-              let tmp = 0;
-              for (const it of Array.isArray(r.items) ? r.items : []) {
-                const b = it.bundle || {};
-                const qty = asNum(it.quantity, 0);
-                const line = it.line_total != null ? Number(it.line_total) : null;
-                if (line != null && !isNaN(line)) {
-                  tmp += line;
-                } else {
-                  const unit =
-                    (it.unit_price != null && !isNaN(Number(it.unit_price)) ? Number(it.unit_price) : null) ??
-                    (b.discounted_price != null && !isNaN(Number(b.discounted_price)) ? Number(b.discounted_price) : null) ??
-                    (b.price != null && !isNaN(Number(b.price)) ? Number(b.price) : null) ??
-                    (b.original_price != null && !isNaN(Number(b.original_price)) ? Number(b.original_price) : null);
-                  if (unit != null) tmp += unit * qty;
-                }
+      const rowsForCarts: any[] = Array.isArray(data?.rows) ? data.rows : []
+      const isItem = rowsForCarts.length > 0 && !!rowsForCarts[0]?.cart_item_id && !Array.isArray(rowsForCarts[0]?.items)
+      let totalSomme = 0
+      if (isItem) {
+        for (const r of rowsForCarts) {
+          const qty = asNum(r.quantity, 0)
+          const line = r.line_total != null ? asNum(r.line_total) : null
+          const unit = line != null ? null : (r.unit_price != null ? asNum(r.unit_price) : null)
+          const sum = line != null ? line : (unit != null ? unit * qty : 0)
+          totalSomme += sum
+        }
+      } else {
+        for (const r of rowsForCarts) {
+          if (r.amount != null && !isNaN(Number(r.amount))) {
+            totalSomme += Number(r.amount)
+          } else {
+            let tmp = 0
+            for (const it of Array.isArray(r.items) ? r.items : []) {
+              const b = it.bundle || {}
+              const qty = asNum(it.quantity, 0)
+              const line = it.line_total != null ? Number(it.line_total) : null
+              if (line != null && !isNaN(line)) {
+                tmp += line
+              } else {
+                const unit =
+                  (it.unit_price != null && !isNaN(Number(it.unit_price)) ? Number(it.unit_price) : null) ??
+                  (b.discounted_price != null && !isNaN(Number(b.discounted_price)) ? Number(b.discounted_price) : null) ??
+                  (b.price != null && !isNaN(Number(b.price)) ? Number(b.price) : null) ??
+                  (b.original_price != null && !isNaN(Number(b.original_price)) ? Number(b.original_price) : null)
+                if (unit != null) tmp += unit * qty
               }
-              totalSomme += tmp;
             }
+            totalSomme += tmp
           }
         }
-
-        cards.push(
-          { icon: <ShoppingCart className="w-4 h-4" />, label: 'Paniers actifs', value: String(asNum(s.active_carts)) },
-          { icon: <Users className="w-4 h-4" />, label: 'Articles / panier', value: asNum(s.avg_cart_qty).toFixed(1) },
-          { icon: <TrendingUp className="w-4 h-4" />, label: 'Somme paniers', value: fmtEur(totalSomme) },
-        )
+      }
+      cards.push(
+        { icon: <ShoppingCart className="w-4 h-4" />, label: 'Paniers actifs', value: String(asNum(s.active_carts)) },
+        { icon: <Users className="w-4 h-4" />, label: 'Articles / panier', value: asNum(s.avg_cart_qty).toFixed(1) },
+        { icon: <TrendingUp className="w-4 h-4" />, label: 'Somme paniers', value: fmtEur(totalSomme) },
+      )
     } else if (tab === 'catalog') {
       const pCount = productCountFrom(data, s)
       const lowStock = asNum(s?.products?.low_stock) || asNum(data?.summary?.products?.low_stock)
@@ -270,7 +266,6 @@ export default function ProducerDashboardTab() {
       const s = data?.summary || {}
       const rows: any[] = Array.isArray(data?.rows) ? data.rows : []
       const uniqueOrders = new Set(rows.map(r => r.order_id)).size
-
       cards.push(
         { icon: <CreditCard className="w-4 h-4" />, label: 'Cmd', value: String(typeof s.orders === 'number' ? s.orders : uniqueOrders) },
         { icon: <TrendingUp className="w-4 h-4" />, label: 'CA', value: fmtEur(asNum(s.revenue)) },
@@ -369,9 +364,9 @@ export default function ProducerDashboardTab() {
   )
 
   const chartShell = (key: string, children: React.ReactNode, title: string) => (
-    <div className="bg-white rounded-lg p-6 shadow-sm relative z-0 max-w-full min-w-0 overflow-hidden">
+    <div className="bg-white rounded-lg p-6 shadow-sm relative z-0 isolate max-w-full min-w-0 overflow-hidden">
       <h4 className="text-sm font-semibold text-dark-green mb-3">{title}</h4>
-      <div className="w-full h-[320px] min-w-0 overflow-hidden">
+      <div className="w-full h-[300px] md:h-[360px] min-w-0 overflow-hidden">
         <ResponsiveContainer width="100%" height="100%" key={rcKey(key)}>
           {children as any}
         </ResponsiveContainer>
@@ -440,33 +435,33 @@ export default function ProducerDashboardTab() {
   }, [data, bucket, limit, tab, viewMode])
 
   const ordersView = useMemo(() => {
-    if (tab !== 'orders') return null;
+    if (tab !== 'orders') return null
 
-    const orders: any[] = Array.isArray(data?.rows) ? data.rows : [];
+    const orders: any[] = Array.isArray(data?.rows) ? data.rows : []
 
     const keyFn =
       bucket === 'week' ? weekKey :
       bucket === 'month' ? monthKey :
-      (s: string) => (s || '').slice(0, 10);
+      (s: string) => (s || '').slice(0, 10)
 
-    type Agg = { period: string; revenue: number; orders: number; units: number; _seen: Set<number> };
+    type Agg = { period: string; revenue: number; orders: number; units: number; _seen: Set<number> }
     const chartMap = orders.reduce((acc: Record<string, Agg>, o: any) => {
-      const k = keyFn(o.created_at);
-      if (!acc[k]) acc[k] = { period: k, revenue: 0, orders: 0, units: 0, _seen: new Set<number>() };
+      const k = keyFn(o.created_at)
+      if (!acc[k]) acc[k] = { period: k, revenue: 0, orders: 0, units: 0, _seen: new Set<number>() }
 
-      const orderRevenue = asNum(o.total_price ?? o.subtotal ?? 0);
-      const its = Array.isArray(o.items) ? o.items : [];
-      const orderUnits = its.reduce((sum: number, it: any) => sum + asNum(it.quantity), 0);
+      const orderRevenue = asNum(o.total_price ?? o.subtotal ?? 0)
+      const its = Array.isArray(o.items) ? o.items : []
+      const orderUnits = its.reduce((sum: number, it: any) => sum + asNum(it.quantity), 0)
 
-      acc[k].revenue += orderRevenue;
-      acc[k].units += orderUnits;
+      acc[k].revenue += orderRevenue
+      acc[k].units += orderUnits
       if (!acc[k]._seen.has(o.id)) {
-        acc[k]._seen.add(o.id);
-        acc[k].orders += 1;
+        acc[k]._seen.add(o.id)
+        acc[k].orders += 1
       }
-      return acc;
-    }, {});
-    const rSeries = Object.values(chartMap).map(({ _seen, ...rest }) => rest);
+      return acc
+    }, {} as Record<string, Agg>)
+    const rSeries = Object.values(chartMap).map(({ _seen, ...rest }) => rest)
 
     const chart = chartShell(
       'orders',
@@ -482,27 +477,27 @@ export default function ProducerDashboardTab() {
         <Line yAxisId="right" type="monotone" dataKey="units" name="Unités" stroke="#0e7490" strokeWidth={2} dot={false} />
       </LineChart>,
       'Commandes / CA / unités'
-    );
+    )
 
     const itemRows = orders.flatMap((o: any) => {
-      const its = Array.isArray(o.items) ? o.items : [];
+      const its = Array.isArray(o.items) ? o.items : []
       return its.map((it: any) => {
         const producerNames = Array.isArray(it.producer_names) && it.producer_names.length
           ? it.producer_names
-          : (Array.isArray(o.producer_names) ? o.producer_names : []);
+          : (Array.isArray(o.producer_names) ? o.producer_names : [])
         const companyNames = Array.isArray(it.company_names) && it.company_names.length
           ? it.company_names
-          : (Array.isArray(o.company_names) ? o.company_names : []);
+          : (Array.isArray(o.company_names) ? o.company_names : [])
         const bundleTitle =
           it?.bundle_snapshot?.title ??
           it?.bundle_title ??
           o?.bundle_title ??
           it?.label ??
-          '—';
-        const totalPrice = asNum(it.total_price);
+          '—'
+        const totalPrice = asNum(it.total_price)
         const unitPrice = typeof it.unit_price === 'number'
           ? it.unit_price
-          : (totalPrice / Math.max(1, asNum(it.quantity)));
+          : (totalPrice / Math.max(1, asNum(it.quantity)))
 
         return {
           order_id: o.id,
@@ -516,9 +511,9 @@ export default function ProducerDashboardTab() {
           unit_price: unitPrice,
           total_price: totalPrice,
           bundle_title: bundleTitle,
-        };
-      });
-    });
+        }
+      })
+    })
 
     const table = (
       <div className="bg-white rounded-lg p-6 shadow-sm max-w-full min-w-0 overflow-hidden">
@@ -573,44 +568,44 @@ export default function ProducerDashboardTab() {
           </table>
         </div>
       </div>
-    );
+    )
 
     return (
       <div className="space-y-6 max-w-full min-w-0">
         {viewMode !== 'table' && chart}
         {viewMode !== 'chart' && table}
       </div>
-    );
-  }, [data, limit, tab, viewMode, bucket, hasProducerCol]);
+    )
+  }, [data, limit, tab, viewMode, bucket, hasProducerCol])
 
   const customersView = useMemo(() => {
-    if (tab !== 'customers') return null;
-    const items: any[] = Array.isArray(data?.rows) ? data.rows : [];
+    if (tab !== 'customers') return null
+    const items: any[] = Array.isArray(data?.rows) ? data.rows : []
 
     const keyFn =
       bucket === 'week' ? weekKey :
       bucket === 'month' ? monthKey :
-      (s: string) => (s || '').slice(0, 10);
+      (s: string) => (s || '').slice(0, 10)
 
-    const firstSeenByUser: Record<string | number, string> = {};
+    const firstSeenByUser: Record<string | number, string> = {}
     for (const r of items) {
-      const uid = r.user_id ?? r.user ?? r.user_name;
-      const dt = r.created_at || '';
-      if (!uid || !dt) continue;
+      const uid = r.user_id ?? r.user ?? r.user_name
+      const dt = r.created_at || ''
+      if (!uid || !dt) continue
       if (!firstSeenByUser[uid] || dt < firstSeenByUser[uid]) {
-        firstSeenByUser[uid] = dt;
+        firstSeenByUser[uid] = dt
       }
     }
 
-    const counts: Record<string, number> = {};
+    const counts: Record<string, number> = {}
     Object.values(firstSeenByUser).forEach((dt) => {
-      const k = keyFn(dt);
-      counts[k] = (counts[k] || 0) + 1;
-    });
+      const k = keyFn(dt)
+      counts[k] = (counts[k] || 0) + 1
+    })
 
     const rSeries = Object.keys(counts)
       .sort()
-      .map((k) => ({ period: k, new_customers: counts[k] }));
+      .map((k) => ({ period: k, new_customers: counts[k] }))
 
     const chart = chartShell(
       'customers',
@@ -630,7 +625,7 @@ export default function ProducerDashboardTab() {
         />
       </BarChart>,
       'Nouveaux clients / période'
-    );
+    )
 
     const itemRows = items.map((r) => ({
       created_at: r.created_at,
@@ -642,7 +637,7 @@ export default function ProducerDashboardTab() {
       status: r.order_status ?? r.status ?? '—',
       producer_names: Array.isArray(r.producer_names) ? r.producer_names : [],
       company_names: Array.isArray(r.company_names) ? r.company_names : [],
-    }));
+    }))
 
     const table = (
       <div className="bg-white rounded-lg p-6 shadow-sm max-w-full min-w-0 overflow-hidden">
@@ -692,82 +687,80 @@ export default function ProducerDashboardTab() {
           </table>
         </div>
       </div>
-    );
+    )
 
     return (
       <div className="space-y-6 max-w-full min-w-0">
         {viewMode !== 'table' && chart}
         {viewMode !== 'chart' && table}
       </div>
-    );
-  }, [data, limit, tab, viewMode, bucket, hasProducerCol]);
-
-
+    )
+  }, [data, limit, tab, viewMode, bucket, hasProducerCol])
 
   const cartsView = useMemo(() => {
-    if (tab !== 'carts') return null;
+    if (tab !== 'carts') return null
 
-    const summary = data?.summary || {};
-    const rows: any[] = Array.isArray(data?.rows) ? data.rows : [];
-    const topAbandoned = Array.isArray(summary?.top_abandoned_products) ? summary.top_abandoned_products : [];
+    const summary = data?.summary || {}
+    const rows: any[] = Array.isArray(data?.rows) ? data.rows : []
+    const topAbandoned = Array.isArray(summary?.top_abandoned_products) ? summary.top_abandoned_products : []
 
     const asNumOrNull = (v: any): number | null =>
-      v == null || v === '' || isNaN(Number(v)) ? null : Number(v);
+      v == null || v === '' || isNaN(Number(v)) ? null : Number(v)
 
     const isItemGranularity =
-      rows.length > 0 && !!rows[0]?.cart_item_id && !Array.isArray(rows[0]?.items);
+      rows.length > 0 && !!rows[0]?.cart_item_id && !Array.isArray(rows[0]?.items)
 
-    type Agg = { qty: number; sum: number };
-    const aggMap = new Map<string, Agg>();
+    type Agg = { qty: number; sum: number }
+    const aggMap = new Map<string, Agg>()
 
     if (rows.length > 0) {
       if (isItemGranularity) {
         for (const r of rows) {
-          const b = r.bundle || {};
-          const qty = asNum(r.quantity, 0);
-          const line = r.line_total != null ? asNum(r.line_total) : null;
-          const unit = line != null ? null : (r.unit_price != null ? asNum(r.unit_price) : null);
-          const sum = line != null ? line : (unit != null ? unit * qty : 0);
+          const b = r.bundle || {}
+          const qty = asNum(r.quantity, 0)
+          const line = r.line_total != null ? asNum(r.line_total) : null
+          const unit = line != null ? null : (r.unit_price != null ? asNum(r.unit_price) : null)
+          const sum = line != null ? line : (unit != null ? unit * qty : 0)
 
           const prodTitle =
             Array.isArray(b.products) && b.products[0]?.title
               ? b.products[0].title
-              : b.title || '—';
+              : b.title || '—'
 
-          const a = aggMap.get(prodTitle) || { qty: 0, sum: 0 };
-          a.qty += qty;
-          a.sum += sum;
-          aggMap.set(prodTitle, a);
+          const a = aggMap.get(prodTitle) || { qty: 0, sum: 0 }
+          a.qty += qty
+          a.sum += sum
+          aggMap.set(prodTitle, a)
         }
       } else {
         for (const r of rows) {
           for (const it of Array.isArray(r.items) ? r.items : []) {
-            const b = it.bundle || {};
-            const qty = asNum(it.quantity, 0);
+            const b = it.bundle || {}
+            const qty = asNum(it.quantity, 0)
 
-            const line = it.line_total != null ? asNumOrNull(it.line_total) : null;
-            let sum: number;
+            const line = it.line_total != null ? asNumOrNull(it.line_total) : null
+            let sum: number
             if (line != null) {
-              sum = line;
+              sum = line
             } else {
               const unit =
                 asNumOrNull(it.unit_price) ??
                 asNumOrNull(b.discounted_price) ??
                 asNumOrNull(b.price) ??
                 asNumOrNull(b.original_price) ??
-                0;
-              sum = unit * qty;
+                0
+              sum = unit * qty
             }
 
             const prodTitle =
               Array.isArray(b.products) && b.products[0]?.title
                 ? b.products[0].title
-                : b.title || '—';
+                : b.title || '—'
 
-            const a = aggMap.get(prodTitle) || { qty: 0, sum: 0 };
-            a.qty += qty;
-            a.sum += sum;
-            aggMap.set(prodTitle, a);
+            const a = aggMap.get(prodTitle) || { qty: 0, sum: 0 }
+            a.qty += qty
+            a.sum += sum
+            aggMap.set(prodTitle, a)
           }
         }
       }
@@ -784,8 +777,7 @@ export default function ProducerDashboardTab() {
             label: p.label || p.title,
             qty: asNum(p.count || p.units || p.qty || 0),
             sum: 0,
-          }));
-
+          }))
 
     const chartBlock =
       chartData.length > 0
@@ -798,7 +790,7 @@ export default function ProducerDashboardTab() {
                 interval={0}
                 height={120}
                 tickMargin={10}
-                tick={<VerticalTick />}
+                tick={<VerticalTick /> as any}
                 tickFormatter={(v: string) => (v.length > 18 ? v.slice(0, 18) + '…' : v)}
               />
               <YAxis yAxisId="left" label={{ value: 'Quantité', angle: -90, position: 'insideLeft' }} />
@@ -810,22 +802,22 @@ export default function ProducerDashboardTab() {
             </BarChart>,
             'Produits abandonnés (Qté / €)'
           )
-        : null;
+        : null
 
     const tableRows = isItemGranularity
       ? rows.map((r: any) => {
-          const b = r.bundle || {};
-          const producerNames = Array.isArray(b.producer_names) ? b.producer_names : [];
-          const companyNames = Array.isArray(b.company_names) ? b.company_names : [];
+          const b = r.bundle || {}
+          const producerNames = Array.isArray(b.producer_names) ? b.producer_names : []
+          const companyNames = Array.isArray(b.company_names) ? b.company_names : []
 
-          const qty = asNum(r.quantity, 0);
-          const unitPrice = r.unit_price != null ? asNum(r.unit_price) : null;
+          const qty = asNum(r.quantity, 0)
+          const unitPrice = r.unit_price != null ? asNum(r.unit_price) : null
           const lineTotal =
             r.line_total != null
               ? asNum(r.line_total)
               : unitPrice != null
               ? unitPrice * qty
-              : null;
+              : null
 
           return {
             cart_item_id: r.cart_item_id,
@@ -838,36 +830,36 @@ export default function ProducerDashboardTab() {
             qty,
             unit_price: unitPrice,
             sum: lineTotal,
-          };
+          }
         })
       : rows.map((r: any) => {
-          const names = new Set<string>();
-          const comps = new Set<string>();
-          const contents: string[] = [];
+          const names = new Set<string>()
+          const comps = new Set<string>()
+          const contents: string[] = []
 
-          let sum: number | null = asNumOrNull(r.amount);
+          let sum: number | null = asNumOrNull(r.amount)
 
           if (sum == null) {
-            let tmp = 0;
+            let tmp = 0
             for (const it of Array.isArray(r.items) ? r.items : []) {
-              const b = it.bundle || {};
-              (b.producer_names || []).forEach((n: string) => names.add(n));
-              (b.company_names || []).forEach((n: string) => comps.add(n));
-              contents.push(`${b.title ?? '—'} x ${asNum(it.quantity, 0)}`);
+              const b = it.bundle || {}
+              ;(b.producer_names || []).forEach((n: string) => names.add(n))
+              ;(b.company_names || []).forEach((n: string) => comps.add(n))
+              contents.push(`${b.title ?? '—'} x ${asNum(it.quantity, 0)}`)
 
-              const line = it.line_total != null ? asNumOrNull(it.line_total) : null;
+              const line = it.line_total != null ? asNumOrNull(it.line_total) : null
               if (line != null) {
-                tmp += line;
+                tmp += line
               } else {
                 const unit =
                   asNumOrNull(it.unit_price) ??
                   asNumOrNull(b.discounted_price) ??
                   asNumOrNull(b.price) ??
-                  asNumOrNull(b.original_price);
-                if (unit != null) tmp += unit * asNum(it.quantity, 0);
+                  asNumOrNull(b.original_price)
+                if (unit != null) tmp += unit * asNum(it.quantity, 0)
               }
             }
-            sum = isNaN(tmp) ? null : tmp;
+            sum = isNaN(tmp) ? null : tmp
           }
 
           return {
@@ -880,11 +872,11 @@ export default function ProducerDashboardTab() {
             content: contents.join(' · '),
             qty: asNum(r.items_qty),
             sum,
-          };
-        });
+          }
+        })
 
-    const baseCols = hasProducerCol ? 9 : 8;
-    const colSpan = isItemGranularity ? baseCols + 1 : baseCols;
+    const baseCols = hasProducerCol ? 9 : 8
+    const colSpan = isItemGranularity ? baseCols + 1 : baseCols
 
     const tableBlock = (
       <div className="bg-white rounded-lg p-6 shadow-sm max-w-full min-w-0 overflow-hidden">
@@ -949,18 +941,15 @@ export default function ProducerDashboardTab() {
           </table>
         </div>
       </div>
-    );
+    )
 
     return (
       <div className="space-y-6 max-w-full min-w-0">
         {viewMode !== 'table' && chartBlock}
         {viewMode !== 'chart' && tableBlock}
       </div>
-    );
-  }, [data, limit, tab, viewMode, hasProducerCol]);
-
-
-
+    )
+  }, [data, limit, tab, viewMode, hasProducerCol])
 
   const catalogView = useMemo(() => {
     if (tab !== 'catalog') return null
@@ -969,7 +958,6 @@ export default function ProducerDashboardTab() {
       : Array.isArray(data?.rows?.products) ? data.rows.products
       : Array.isArray(data?.rows?.products?.data) ? data.rows.products.data
       : []
-
 
     const chartData = products.map((p: any) => ({ label: p.title || p.name, sold: asNum(p.sold), stock: asNum(p.stock) }))
 
@@ -981,7 +969,7 @@ export default function ProducerDashboardTab() {
           interval={0}
           height={120}
           tickMargin={10}
-          tick={<VerticalTick />}
+          tick={<VerticalTick /> as any}
           tickFormatter={(v: string) => (v.length > 18 ? v.slice(0, 18) + '…' : v)}
         />
         <YAxis label={{ value: 'Quantité', angle: -90, position: 'insideLeft' }} />
@@ -1028,9 +1016,6 @@ export default function ProducerDashboardTab() {
     return <div className="space-y-6 max-w-full min-w-0">{viewMode !== 'table' && chart}{viewMode !== 'chart' && table}</div>
   }, [data, limit, tab, viewMode])
 
-
-
-
   const healthView = useMemo(() => {
     if (tab !== 'health') return null
     const products =
@@ -1048,7 +1033,7 @@ export default function ProducerDashboardTab() {
           interval={0}
           height={120}
           tickMargin={10}
-          tick={<VerticalTick />}
+          tick={<VerticalTick /> as any}
           tickFormatter={(v: string) => (v.length > 18 ? v.slice(0, 18) + '…' : v)}
         />
         <YAxis />
@@ -1112,10 +1097,6 @@ export default function ProducerDashboardTab() {
 
     return <div className="space-y-6 max-w-full min-w-0">{viewMode !== 'table' && chart}{viewMode !== 'chart' && table}</div>
   }, [data, limit, tab, viewMode])
-
-
-
-
 
   const impactView = useMemo(() => {
     if (tab !== 'impact') return null
@@ -1188,10 +1169,6 @@ export default function ProducerDashboardTab() {
     return <div className="space-y-6 max-w-full min-w-0">{viewMode !== 'table' && chart}{viewMode !== 'chart' && table}</div>
   }, [data, limit, tab, viewMode, bucket])
 
-
-
-
-
   const paymentsView = useMemo(() => {
     if (tab !== 'payments') return null
 
@@ -1253,16 +1230,16 @@ export default function ProducerDashboardTab() {
                     {Array.isArray(r.company_names) ? r.company_names.join(', ') : (r.company_name ?? '')}
                   </td>
                   <td className="px-4 py-2">{fmtDateTime(r.created_at)}</td>
-                  <td className="px-4 py-2">{r.user_name}</td>
+                  <td className="px-4 py-2">{r.user_name ?? r.customer_name ?? r.user ?? r.user_id ?? '—'}</td>
                   <td className="px-4 py-2">{r.order_id}</td>
                   <td className="px-4 py-2">{r.order_item_id ?? r.item_id ?? '—'}</td>
-                  <td className="px-4 py-2">{r.payment_method ?? r.method ?? '—'}</td>
-                  <td className="px-4 py-2 text-right">{fmtEur(asNumber(r.amount ?? r.total_price))}</td>
+                  <td className="px-4 py-2">{r.method ?? r.payment_method ?? '—'}</td>
+                  <td className="px-4 py-2 text-right">{fmtEur(asNumber(r.amount ?? r.total_price ?? 0))}</td>
                 </tr>
               ))}
               {orderRows.length === 0 && (
                 <tr>
-                  <td className="px-4 py-6 text-sm text-gray-500" colSpan={cs(8)}>Aucun résultat</td>
+                  <td className="px-4 py-6 text-sm text-gray-500" colSpan={hasProducerCol ? 8 : 7}>Aucun résultat</td>
                 </tr>
               )}
             </tbody>
@@ -1278,9 +1255,6 @@ export default function ProducerDashboardTab() {
       </div>
     )
   }, [data, limit, tab, viewMode])
-
-
-
 
 
   const cohortsView = useMemo(() => {

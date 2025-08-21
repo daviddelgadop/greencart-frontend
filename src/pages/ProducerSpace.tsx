@@ -11,7 +11,7 @@ import {
   Apple,
   Leaf,
   CreditCard,
-  LayoutDashboard, // icon for the new Dashboard tab
+  LayoutDashboard,
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import {
@@ -24,7 +24,7 @@ import {
   ProductsTab,
   ProductBundlesTab,
 } from '../tabs'
-import ProducerDashboardTab from '../tabs/ProducerDashboardTab' // new
+import ProducerDashboardTab from '../tabs/ProducerDashboardTab'
 
 type TabId =
   | 'overview'
@@ -34,7 +34,7 @@ type TabId =
   | 'bundles'
   | 'prodproducts'
   | 'orders'
-  | 'dashboard'   // new
+  | 'dashboard'
   | 'analytics'
 
 const tabs: { id: TabId; name: string; icon: any }[] = [
@@ -44,7 +44,6 @@ const tabs: { id: TabId; name: string; icon: any }[] = [
   { id: 'products',       name: 'Mes produits',               icon: Apple },
   { id: 'bundles',        name: 'Mes lots',                   icon: ShoppingBag },
   { id: 'orders',         name: 'Commandes',                  icon: Users },
-  // new top-level tab for dashboards (keeps existing "analytics" intact)
   { id: 'dashboard',      name: 'Dashboard',                  icon: LayoutDashboard },
   { id: 'analytics',      name: 'Analyses et prévisions',     icon: TrendingUp },
 ]
@@ -58,7 +57,7 @@ export default function ProducerDashboard() {
   const currentTitle = tabs.find(t => t.id === current)?.name || ''
 
   return (
-    <div className="min-h-screen bg-pale-yellow/20 py-12">
+    <div className="min-h-screen bg-pale-yellow/20 py-12 overflow-x-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         <section className="mb-8">
@@ -83,10 +82,10 @@ export default function ProducerDashboard() {
         </section>
 
         {/* Main layout */}
-        <div className="flex flex-col lg:flex-row gap-8 items-start">
+        <div className="flex flex-col lg:flex-row gap-8 items-start min-w-0">
           {/* Sidebar */}
-          <aside className="w-full lg:w-1/4">
-            <div className="bg-white rounded-2xl shadow-sm p-6 sticky top-24">
+          <aside className="w-full lg:w-1/4 shrink-0 relative z-20">
+            <div className="bg-white rounded-2xl shadow-sm p-6 sticky top-24 z-20">
               <nav className="space-y-2">
                 {tabs.map(tab => (
                   <NavLink
@@ -101,7 +100,7 @@ export default function ProducerDashboard() {
                     }
                   >
                     <tab.icon className="w-5 h-5" />
-                    <span>{tab.name}</span>
+                    <span className="truncate">{tab.name}</span>
                   </NavLink>
                 ))}
               </nav>
@@ -109,8 +108,8 @@ export default function ProducerDashboard() {
           </aside>
 
           {/* Content */}
-          <main className="w-full lg:flex-1">
-            <div className="bg-white rounded-2xl shadow-sm p-6">
+          <main className="w-full lg:flex-1 min-w-0 relative isolate z-0">
+            <div className="bg-white rounded-2xl shadow-sm p-6 max-w-full overflow-hidden">
               <h2 className="text-2xl font-bold text-dark-green mb-6">{currentTitle}</h2>
 
               <Routes>
@@ -123,10 +122,10 @@ export default function ProducerDashboard() {
                 {/* <Route path="prodproducts" element={<ProducerBundlesTab />} /> */}
                 <Route path="orders" element={<ProducerOrdersTab />} />
 
-                {/* new: dashboards live here as sub-tabs inside one page */}
+                {/* dashboards */}
                 <Route path="dashboard" element={<ProducerDashboardTab />} />
 
-                {/* existing analytics remains untouched */}
+                {/* existing analytics */}
                 <Route path="analytics" element={<ProducerAnalyticsTab />} />
 
                 <Route path="*" element={<Navigate to="overview" replace />} />

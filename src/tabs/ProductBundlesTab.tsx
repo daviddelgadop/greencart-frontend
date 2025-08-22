@@ -93,7 +93,7 @@ export default function ProductBundlesTab() {
 
   const [searchTerm, setSearchTerm] = useState('')
   const [productBundleIdToDelete, setProductBundleIdToDelete] = useState<number | null>(null)
-  const [deleteMessage, setDeleteMessage] = useState<string>('') // <- mensaje modal
+  const [deleteMessage, setDeleteMessage] = useState<string>('')
 
   type BundleSortKey = '' | keyof ProductBundle
   const [sortField, setSortField] = useState<BundleSortKey>('')
@@ -192,14 +192,12 @@ export default function ProductBundlesTab() {
     setForm(prev => ({ ...prev, [target.name]: target.value }))
   }
 
-  // Abre el modal de confirmación con mensaje
   const handleDelete = (bundle: ProductBundle) => {
     setProductBundleIdToDelete(bundle.id)
     setDeleteMessage(`Voulez-vous vraiment supprimer le lot « ${bundle.title} » ? Cette action le désactivera.`)
     setShowDeleteModal(true)
   }
 
-  // Confirmación del modal de borrar
   const confirmDelete = () => {
     if (!productBundleIdToDelete) return
 
@@ -211,7 +209,6 @@ export default function ProductBundlesTab() {
     }
 
     if (PASSWORD_CONFIRM_PRODUCT_BUNDLES) {
-      // Primero cerrar el modal de borrado y luego pedir contraseña
       setShowDeleteModal(false)
       setPendingAction(() => doDelete)
       setShowPasswordConfirm(true)
@@ -384,16 +381,16 @@ export default function ProductBundlesTab() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0">
       {/* Toolbar */}
       <div className="bg-white rounded-lg p-6 shadow-sm">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           <h3 className="text-lg font-semibold text-dark-green"></h3>
           {!showForm && !editingId && (
             <button
               type="button"
               onClick={() => setShowForm(true)}
-              className="bg-dark-green text-pale-yellow px-4 py-2 rounded-full font-semibold hover:bg-dark-green/90 transition-colors flex items-center space-x-2"
+              className="w-full sm:w-auto bg-dark-green text-pale-yellow px-4 py-2 rounded-full font-semibold hover:bg-dark-green/90 transition-colors flex items-center justify-center sm:justify-start space-x-2"
             >
               <Plus className="w-4 h-4" />
               <span>Créer un lot</span>
@@ -473,91 +470,93 @@ export default function ProductBundlesTab() {
           </div>
 
           <div className="mt-10">
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-3">
               <h4 className="text-sm font-semibold text-dark-green">Produits dans le lot</h4>
               <input
                 type="text"
                 value={productSearch}
                 onChange={e => setProductSearch(e.target.value)}
                 placeholder="Rechercher par produit ou catégorie…"
-                className="form-input w-full max-w-sm"
+                className="form-input w-full sm:max-w-sm"
               />
             </div>
 
-            <div className="max-h-[60vh] overflow-auto">
-              <table className="w-full table-auto border border-gray-200 text-sm">
-                <thead className="bg-gray-50">
-                   <tr className="text-center">
-                    <th className={`${baseTh} text-left`}>Catégorie</th>
-                    <th className={`${baseTh} text-left`}>Produit</th>
-                    <th className={`${baseTh} text-left`}>Stock total</th>
-                    <th className={`${baseTh} text-left w-[220px]`}>Qté par lot</th>
-                    <th className={`${baseTh} text-left`}>DLUO</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {sortedVisibleProducts.map(prod => {
-                    const currentItem = form.items.find(i => i.product_id === prod.id)
-                    const quantity = currentItem?.quantity ?? ''
-                    return (
-                      <tr key={prod.id}>
-                        <td className="px-4 py-2 text-gray-800">{prod.catalog_entry_data?.category?.label || '—'}</td>
-                        <td className="px-4 py-2 text-gray-800">{prod.title}</td>
-                        <td className="px-4 py-2 text-gray-800">
-                          {prod.stock} {prod.unit}
-                        </td>
+            <div className="max-h-[60vh] overflow-auto rounded-lg border border-gray-200">
+              <div className="overflow-x-auto">
+                <table className="w-full table-auto text-sm">
+                  <thead className="bg-gray-50">
+                    <tr className="text-center">
+                      <th className={`${baseTh} text-left`}>Catégorie</th>
+                      <th className={`${baseTh} text-left`}>Produit</th>
+                      <th className={`${baseTh} text-left`}>Stock total</th>
+                      <th className={`${baseTh} text-left w-[220px]`}>Qté par lot</th>
+                      <th className={`${baseTh} text-left`}>DLUO</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {sortedVisibleProducts.map(prod => {
+                      const currentItem = form.items.find(i => i.product_id === prod.id)
+                      const quantity = currentItem?.quantity ?? ''
+                      return (
+                        <tr key={prod.id}>
+                          <td className="px-4 py-2 text-gray-800">{prod.catalog_entry_data?.category?.label || '—'}</td>
+                          <td className="px-4 py-2 text-gray-800">{prod.title}</td>
+                          <td className="px-4 py-2 text-gray-800">
+                            {prod.stock} {prod.unit}
+                          </td>
 
-                        <td className="px-4 py-2">
-                          <div className="flex items-center gap-2">
+                          <td className="px-4 py-2">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="number"
+                                min="0"
+                                className="form-input w-36"
+                                value={quantity}
+                                onChange={e => {
+                                  const val = e.target.value
+                                  const qty = val === '' ? NaN : parseInt(val, 10)
+                                  setForm(prev => {
+                                    const items = [...prev.items]
+                                    const idx = items.findIndex(i => i.product_id === prod.id)
+                                    if (Number.isNaN(qty)) {
+                                      if (idx >= 0) items[idx].quantity = 0
+                                    } else if (idx >= 0) {
+                                      if (qty > 0) items[idx].quantity = qty
+                                      else items.splice(idx, 1)
+                                    } else if (qty > 0) {
+                                      items.push({ product_id: prod.id, quantity: qty, best_before_date: '' })
+                                    }
+                                    return { ...prev, items }
+                                  })
+                                }}
+                              />
+                              <span className="text-xs text-gray-600">{prod.unit}</span>
+                            </div>
+                          </td>
+
+                          <td className="px-4 py-2">
                             <input
-                              type="number"
-                              min="0"
-                              className="form-input w-36"
-                              value={quantity}
+                              type="date"
+                              className="form-input w-full text-xs"
+                              value={currentItem?.best_before_date || ''}
                               onChange={e => {
-                                const val = e.target.value
-                                const qty = val === '' ? NaN : parseInt(val, 10)
+                                const newDate = e.target.value
                                 setForm(prev => {
                                   const items = [...prev.items]
                                   const idx = items.findIndex(i => i.product_id === prod.id)
-                                  if (Number.isNaN(qty)) {
-                                    if (idx >= 0) items[idx].quantity = 0
-                                  } else if (idx >= 0) {
-                                    if (qty > 0) items[idx].quantity = qty
-                                    else items.splice(idx, 1)
-                                  } else if (qty > 0) {
-                                    items.push({ product_id: prod.id, quantity: qty, best_before_date: '' })
-                                  }
+                                  if (idx >= 0) items[idx].best_before_date = newDate
+                                  else items.push({ product_id: prod.id, quantity: 0, best_before_date: newDate })
                                   return { ...prev, items }
                                 })
                               }}
                             />
-                            <span className="text-xs text-gray-600">{prod.unit}</span>
-                          </div>
-                        </td>
-
-                        <td className="px-4 py-2">
-                          <input
-                            type="date"
-                            className="form-input w-full text-xs"
-                            value={currentItem?.best_before_date || ''}
-                            onChange={e => {
-                              const newDate = e.target.value
-                              setForm(prev => {
-                                const items = [...prev.items]
-                                const idx = items.findIndex(i => i.product_id === prod.id)
-                                if (idx >= 0) items[idx].best_before_date = newDate
-                                else items.push({ product_id: prod.id, quantity: 0, best_before_date: newDate })
-                                return { ...prev, items }
-                              })
-                            }}
-                          />
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
 
@@ -626,10 +625,10 @@ export default function ProductBundlesTab() {
             )}
           </div>
 
-          <div className="mt-12 pt-4 flex items-center gap-3">
+          <div className="mt-12 pt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             <button
               onClick={handleSubmit}
-              className="bg-dark-green text-pale-yellow px-6 py-2 rounded-full font-semibold hover:bg-dark-green/90 transition-colors"
+              className="w-full sm:w-auto bg-dark-green text-pale-yellow px-6 py-2 rounded-full font-semibold hover:bg-dark-green/90 transition-colors"
             >
               {editingId ? 'Mettre à jour le lot' : 'Créer le lot'}
             </button>
@@ -638,7 +637,7 @@ export default function ProductBundlesTab() {
                 resetForm()
                 setShowForm(false)
               }}
-              className="px-6 py-2 rounded-full border border-gray-300 text-gray-700 hover:bg-gray-50"
+              className="w-full sm:w-auto px-6 py-2 rounded-full border border-gray-300 text-gray-700 hover:bg-gray-50"
             >
               {editingId ? 'Annuler la modification' : 'Annuler'}
             </button>
@@ -648,20 +647,131 @@ export default function ProductBundlesTab() {
 
       {/* List */}
       <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-        <div className="flex justify-between px-6 pb-4">
+        <div className="flex flex-col sm:flex-row justify-between items-stretch gap-3 px-6 pb-4">
           <input
             type="text"
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             placeholder="Rechercher par titre..."
-            className="form-input w-full max-w-sm"
+            className="form-input w-full sm:max-w-sm"
           />
         </div>
 
+        {/* Mobile cards */}
+        <div className="md:hidden px-4 pb-4 space-y-3">
+          {sortedBundles.length === 0 ? (
+            <p className="text-gray-500 px-2">Aucun lot enregistré.</p>
+          ) : (
+            sortedBundles.map(bundle => {
+              const ui = bundle.stock > 0 ? bundle.status : ('rupture' as const)
+              const statusLabel: Record<typeof ui | 'rupture', string> = {
+                draft: 'Brouillon',
+                published: 'Publié',
+                archived: 'Archivé',
+                rupture: 'Rupture',
+              }
+              const statusClass: Record<typeof ui | 'rupture', string> = {
+                published: 'bg-green-100 text-green-800',
+                archived:  'bg-gray-100 text-gray-600',
+                rupture:   'bg-red-100 text-red-800',
+                draft:     'bg-yellow-100 text-yellow-800',
+              }
+
+              return (
+                <div key={bundle.id} className="border rounded-lg p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="font-semibold text-dark-green break-words">{bundle.title}</div>
+                      <div className="mt-1 text-xs text-gray-600 space-y-1">
+                        {bundle.items?.slice(0, 4).map((item, i) => (
+                          <div key={i} className="break-words">
+                            {item.quantity} {displayUnit(item.product.unit)} × {item.product.title}
+                            <span className="text-gray-400"> — {item.product.company_name}</span>
+                          </div>
+                        ))}
+                        {bundle.items.length > 4 && (
+                          <div className="text-gray-400">+ {bundle.items.length - 4} autres…</div>
+                        )}
+                      </div>
+                    </div>
+                    <span className={`px-2 py-1 rounded text-xs shrink-0 ${statusClass[ui]}`}>
+                      {statusLabel[ui]}
+                    </span>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                    <div className="text-gray-700">Stock: <span className="font-medium">{bundle.stock}</span></div>
+                    <div className="text-gray-700">Vendus: <span className="font-medium">{bundle.sold_bundles ?? 0}</span></div>
+                    <div className="text-gray-700">Original: <span className="font-semibold">{bundle.original_price} €</span></div>
+                    <div className="text-gray-700">Réduit: <span className="font-semibold">{bundle.discounted_price} €</span></div>
+                    <div className="col-span-2 text-gray-700">
+                      {bundle.ratings_count === 0 ? (
+                        <span>Non noté</span>
+                      ) : (
+                        <span className="font-medium">{bundle.avg_rating}/5</span>
+                      )}{' '}
+                      {bundle.ratings_count > 0 && <span className="text-gray-500">({bundle.ratings_count} avis)</span>}
+                    </div>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+                    <Link
+                      to={`/bundle/${bundle.id}`}
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-1 px-3 py-2 rounded-full border text-dark-green hover:bg-gray-50"
+                      title="Voir lot"
+                    >
+                      <Eye className="w-4 h-4" />
+                      Voir
+                    </Link>
+
+                    <button
+                      onClick={() => handleEdit(bundle)}
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-1 px-3 py-2 rounded-full border text-blue-700 hover:bg-blue-50"
+                      title="Modifier"
+                    >
+                      <Edit className="w-4 h-4" />
+                      Modifier
+                    </button>
+
+                    <button
+                      onClick={() => handleDelete(bundle)}
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-1 px-3 py-2 rounded-full border text-red-600 hover:bg-red-50"
+                      title="Supprimer"
+                    >
+                      <Trash className="w-4 h-4" />
+                      Supprimer
+                    </button>
+
+                    {[
+                      { target: 'published' as const, title: 'Publier', btnClass: 'text-blue-600 hover:text-blue-800', Icon: UploadCloud },
+                      { target: 'archived'  as const, title: 'Archiver', btnClass: 'text-gray-600 hover:text-gray-800', Icon: Archive },
+                      { target: 'draft'     as const, title: 'Revenir en brouillon', btnClass: 'text-yellow-600 hover:text-yellow-800', Icon: Undo2 },
+                    ]
+                      .filter(a => a.target !== bundle.status)
+                      .map(a => (
+                        <button
+                          key={a.target}
+                          onClick={() => updateStatus(bundle.id, a.target)}
+                          className={`w-full sm:w-auto inline-flex items-center justify-center gap-1 px-3 py-2 rounded-full border ${a.btnClass.replace('text-', 'border-') } ${a.btnClass}`}
+                          title={a.title}
+                          aria-label={`${a.title} (${a.target})`}
+                        >
+                          <a.Icon className="w-4 h-4" />
+                          {a.title}
+                        </button>
+                      ))}
+                  </div>
+                </div>
+              )
+            })
+          )}
+        </div>
+
+        {/* Desktop table */}
         {sortedBundles.length === 0 ? (
-          <p className="text-gray-500 px-6 pb-6">Aucun lot enregistré.</p>
+          <p className="hidden md:block text-gray-500 px-6 pb-6">Aucun lot enregistré.</p>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm border-t border-gray-200 table-fixed">
               <thead className="bg-gray-50">
                 <colgroup>
@@ -690,7 +800,7 @@ export default function ProductBundlesTab() {
               <tbody>
                 {sortedBundles.map(bundle => {
                   return (
-                    <tr key={bundle.id} className="border-t">
+                    <tr key={bundle.id} className="border-t align-top">
                       <td className="p-2 whitespace-normal break-words">{bundle.title}</td>
                       <td className="p-2 whitespace-pre-wrap text-sm">
                         {bundle.items?.map((item, i) => (
@@ -740,7 +850,7 @@ export default function ProductBundlesTab() {
                       </td>
 
                       <td className="p-2">
-                        <div className="flex space-x-2">
+                        <div className="flex flex-wrap gap-2">
                           <Link
                             to={`/bundle/${bundle.id}`}
                             className="text-dark-green hover:text-medium-brown"
@@ -794,7 +904,7 @@ export default function ProductBundlesTab() {
         )}
       </div>
 
-      {/* Modales */}
+      {/* Modals */}
       <PasswordConfirmModal
         visible={showPasswordConfirm}
         onClose={() => setShowPasswordConfirm(false)}
@@ -802,8 +912,6 @@ export default function ProductBundlesTab() {
       />
       <ConfirmDeleteModal
         visible={showDeleteModal}
-        // Si tu ConfirmDeleteModal acepta 'message' y/o 'title', pasa el texto aquí.
-        // Si no los acepta, simplemente ignora estas props o quítalas.
         message={deleteMessage}
         onConfirm={confirmDelete}
         onCancel={() => {

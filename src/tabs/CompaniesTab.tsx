@@ -17,8 +17,8 @@ type Company = {
     street_name: string
     city: { name: string; postal_code: string } | null
   } | null
-  avg_rating : number
-  ratings_count : number
+  avg_rating: number
+  ratings_count: number
 }
 
 export default function CompaniesTab() {
@@ -65,7 +65,7 @@ export default function CompaniesTab() {
     try {
       const data = await http.get<Company[]>('/api/companies/')
       setCompanies(data)
-    } catch (err) {
+    } catch {
       toast.error('Erreur lors du chargement des commerces.')
     }
   }
@@ -73,8 +73,8 @@ export default function CompaniesTab() {
   const fetchAddresses = async () => {
     try {
       const data = await http.get<any[]>('/api/addresses/')
-      setAddresses(data)
-    } catch (err) {
+    setAddresses(data)
+    } catch {
       toast.error('Erreur lors du chargement des adresses.')
     }
   }
@@ -260,18 +260,25 @@ export default function CompaniesTab() {
         : bVal.localeCompare(aVal)
     })
 
+  const displayAddress = (c: Company) =>
+    c.address && c.address.city
+      ? `${c.address.street_number} ${c.address.street_name}, ${c.address.city.name} (${c.address.city.postal_code})`
+      : '—'
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0">
       {/* Toolbar */}
       <div className="bg-white rounded-lg p-6 shadow-sm">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           <h3 className="text-lg font-semibold text-dark-green"></h3>
           {!showForm && !editingId && (
             <button
               type="button"
-              onClick={() => setShowForm(true)}
-              className="bg-dark-green text-pale-yellow px-4 py-2 rounded-full font-semibold hover:bg-dark-green/90 transition-colors"
+              onClick={() => {
+                setShowForm(true)
+                setTimeout(() => formBoxRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0)
+              }}
+              className="w-full sm:w-auto bg-dark-green text-pale-yellow px-4 py-2 rounded-full font-semibold hover:bg-dark-green/90 transition-colors"
             >
               Ajouter un commerce
             </button>
@@ -366,11 +373,11 @@ export default function CompaniesTab() {
             </div>
           </div>
 
-          <div className="mt-6 flex items-center gap-3">
+          <div className="mt-6 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             <button
               type="button"
               onClick={handleSave}
-              className="bg-dark-green text-pale-yellow px-6 py-2 rounded-full font-semibold hover:bg-dark-green/90 transition-colors"
+              className="w-full sm:w-auto bg-dark-green text-pale-yellow px-6 py-2 rounded-full font-semibold hover:bg-dark-green/90 transition-colors"
             >
               {editingId ? 'Mettre à jour le commerce' : 'Sauvegarder le commerce'}
             </button>
@@ -381,7 +388,7 @@ export default function CompaniesTab() {
                 resetForm()
                 setShowForm(false)
               }}
-              className="px-6 py-2 rounded-full border border-gray-300 text-gray-700 hover:bg-gray-50"
+              className="w-full sm:w-auto px-6 py-2 rounded-full border border-gray-300 text-gray-700 hover:bg-gray-50"
             >
               {editingId ? 'Annuler la modification' : 'Annuler'}
             </button>
@@ -391,102 +398,157 @@ export default function CompaniesTab() {
 
       {/* List */}
       <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-        <div className="flex justify-between items-center px-6 pb-4">
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-center justify-between px-6 pb-4">
           <input
             type="text"
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             placeholder="Rechercher par nom, SIRET, ou ville..."
-            className="form-input w-full max-w-sm"
+            className="form-input w-full sm:max-w-sm"
           />
         </div>
 
         {filteredCompanies.length === 0 ? (
           <p className="text-gray-500 px-6 pb-6">Aucun commerce enregistré.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <div className="max-w-6xl mx-auto">
-              <table className="w-full table-fixed">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase">Logo</th>
-                    <th
-                      onClick={() => handleSort('name')}
-                      className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase cursor-pointer select-none hover:text-dark-green"
-                      title="Cliquer pour trier par nom"
-                    >
-                      Nom {sortField === 'name' ? (sortDirection === 'asc' ? '▲' : '▼') : <span className="text-gray-300">▲</span>}
-                    </th>
-                    <th
-                      onClick={() => handleSort('siret_number')}
-                      className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase cursor-pointer select-none hover:text-dark-green"
-                      title="Cliquer pour trier par SIRET"
-                    >
-                      SIRET {sortField === 'siret_number' ? (sortDirection === 'asc' ? '▲' : '▼') : <span className="text-gray-300">▲</span>}
-                    </th>
-                    <th
-                      onClick={() => handleSort('city')}
-                      className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase cursor-pointer select-none hover:text-dark-green"
-                      title="Cliquer pour trier par ville"
-                    >
-                      Adresse {sortField === 'city' ? (sortDirection === 'asc' ? '▲' : '▼') : <span className="text-gray-300">▲</span>}
-                    </th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase">Description</th>
-                    <th
-                      onClick={() => handleSort('avg_rating')}
-                      className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase cursor-pointer select-none hover:text-dark-green"
-                      title="Cliquer pour trier par note"
-                    >
-                      Note Moy. {sortField === 'avg_rating' ? (sortDirection === 'asc' ? '▲' : '▼') : <span className="text-gray-300">▲</span>}
-                    </th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase">Actions</th>
-                  </tr>
-                </thead>
-
-                <tbody className="bg-white divide-y divide-gray-200 text-xs">
-                  {filteredCompanies.map(company => (
-                    <tr key={company.id}>
-                      <td className="px-4 py-3 text-center">
-                        {company.logo ? (
-                          <img
-                            src={company.logo}
-                            alt={`Logo de ${company.name}`}
-                            className="w-10 h-10 object-contain rounded bg-white border mx-auto"
-                          />
-                        ) : (
-                          <span className="text-gray-400">—</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 font-medium text-gray-900">{company.name}</td>
-                      <td className="px-4 py-3">{company.siret_number}</td>
-                      <td className="px-4 py-3">
-                        {company.address && company.address.city
-                          ? `${company.address.street_number} ${company.address.street_name}, ${company.address.city.name}`
-                          : '—'}
-                      </td>
-                      <td className="px-4 py-3 whitespace-normal break-words max-w-xs">{company.description}</td>
-                      <td className="px-4 py-3">
-                        {company.ratings_count === 0
-                          ? "Non noté"
-                          : `${company.avg_rating}/5 (${company.ratings_count} avis)`}
-                      </td>
-                        <td className="px-4 py-3 text-center">
-                        <div className="flex justify-center space-x-2">
-                          <button onClick={() => handleEdit(company)} className="text-dark-green hover:text-medium-brown">
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button onClick={() => handleDelete(company.id)} className="text-red-500 hover:text-red-700">
-                            <Trash className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-
-              </table>
+          <>
+            {/* Mobile cards */}
+            <div className="md:hidden px-4 pb-4 space-y-3">
+              {filteredCompanies.map(company => (
+                <div key={company.id} className="border rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-12 h-12 shrink-0 rounded bg-gray-50 border overflow-hidden flex items-center justify-center">
+                      {company.logo ? (
+                        <img
+                          src={company.logo}
+                          alt={company.name}
+                          className="w-full h-full object-contain"
+                        />
+                      ) : (
+                        <span className="text-xs text-gray-400">—</span>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <div className="font-semibold text-dark-green truncate">{company.name}</div>
+                        <span className="px-2 py-0.5 rounded text-[11px] bg-emerald-100 text-emerald-800">
+                          {company.ratings_count === 0 ? 'Non noté' : `${company.avg_rating}/5`}
+                        </span>
+                      </div>
+                      <div className="text-xs text-gray-500 mt-0.5 break-words">
+                        SIRET: {company.siret_number}
+                      </div>
+                      <div className="text-sm text-gray-700 mt-1 line-clamp-2">
+                        {company.description}
+                      </div>
+                      <div className="text-xs text-gray-600 mt-1">
+                        {displayAddress(company)}
+                      </div>
+                    </div>
+                    <div className="shrink-0 flex flex-col gap-2">
+                      <button
+                        onClick={() => handleEdit(company)}
+                        className="inline-flex items-center justify-center w-9 h-9 rounded-full border text-dark-green hover:bg-gray-50"
+                        title="Modifier"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(company.id)}
+                        className="inline-flex items-center justify-center w-9 h-9 rounded-full border text-red-600 hover:bg-red-50"
+                        title="Supprimer"
+                      >
+                        <Trash className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
+
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto">
+              <div className="max-w-6xl mx-auto">
+                <table className="w-full table-fixed">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase">Logo</th>
+                      <th
+                        onClick={() => handleSort('name')}
+                        className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase cursor-pointer select-none hover:text-dark-green"
+                        title="Cliquer pour trier par nom"
+                      >
+                        Nom {sortField === 'name' ? (sortDirection === 'asc' ? '▲' : '▼') : <span className="text-gray-300">▲</span>}
+                      </th>
+                      <th
+                        onClick={() => handleSort('siret_number')}
+                        className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase cursor-pointer select-none hover:text-dark-green"
+                        title="Cliquer pour trier par SIRET"
+                      >
+                        SIRET {sortField === 'siret_number' ? (sortDirection === 'asc' ? '▲' : '▼') : <span className="text-gray-300">▲</span>}
+                      </th>
+                      <th
+                        onClick={() => handleSort('city')}
+                        className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase cursor-pointer select-none hover:text-dark-green"
+                        title="Cliquer pour trier par ville"
+                      >
+                        Adresse {sortField === 'city' ? (sortDirection === 'asc' ? '▲' : '▼') : <span className="text-gray-300">▲</span>}
+                      </th>
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase">Description</th>
+                      <th
+                        onClick={() => handleSort('avg_rating')}
+                        className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase cursor-pointer select-none hover:text-dark-green"
+                        title="Cliquer pour trier par note"
+                      >
+                        Note Moy. {sortField === 'avg_rating' ? (sortDirection === 'asc' ? '▲' : '▼') : <span className="text-gray-300">▲</span>}
+                      </th>
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase">Actions</th>
+                    </tr>
+                  </thead>
+
+                  <tbody className="bg-white divide-y divide-gray-200 text-xs">
+                    {filteredCompanies.map(company => (
+                      <tr key={company.id}>
+                        <td className="px-4 py-3 text-center">
+                          {company.logo ? (
+                            <img
+                              src={company.logo}
+                              alt={`Logo de ${company.name}`}
+                              className="w-10 h-10 object-contain rounded bg-white border mx-auto"
+                            />
+                          ) : (
+                            <span className="text-gray-400">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 font-medium text-gray-900">{company.name}</td>
+                        <td className="px-4 py-3">{company.siret_number}</td>
+                        <td className="px-4 py-3">
+                          {displayAddress(company)}
+                        </td>
+                        <td className="px-4 py-3 whitespace-normal break-words max-w-xs">{company.description}</td>
+                        <td className="px-4 py-3">
+                          {company.ratings_count === 0
+                            ? 'Non noté'
+                            : `${company.avg_rating}/5 (${company.ratings_count} avis)`}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <div className="flex justify-center space-x-2">
+                            <button onClick={() => handleEdit(company)} className="text-dark-green hover:text-medium-brown" title="Modifier">
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => handleDelete(company.id)} className="text-red-500 hover:text-red-700" title="Supprimer">
+                              <Trash className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+
+                </table>
+              </div>
+            </div>
+          </>
         )}
       </div>
 

@@ -97,34 +97,33 @@ export default function Account() {
   const CurrentIcon = currentTabDef.icon
 
   return (
-    <div className="min-h-screen bg-pale-yellow/20 py-12">
+    <div className="min-h-screen bg-pale-yellow/20 py-12 overflow-x-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-      <section className="mb-8">
-        <div className="rounded-3xl bg-white/90 backdrop-blur px-6 py-7 md:px-8 md:py-9 shadow-sm ring-1 ring-black/5">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-dark-green tracking-tight flex items-center gap-4">
-                <User className="w-8 h-8" />
-                Mon compte
-              </h1>
-              <p className="mt-2 text-gray-600"></p>
-            </div>
-            {user?.public_display_name && (
-              <div className="text-dark-green/80">
-                <span className="inline-flex items-center rounded-full bg-dark-green/10 px-3 py-1 font-medium">
-                  {user.public_display_name}
-                </span>
+        <section className="mb-8">
+          <div className="rounded-3xl bg-white/90 backdrop-blur px-6 py-7 md:px-8 md:py-9 shadow-sm ring-1 ring-black/5">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+              <div>
+                <h1 className="text-2xl md:text-3xl font-bold text-dark-green tracking-tight flex items-center gap-4">
+                  <User className="w-8 h-8" />
+                  Mon compte
+                </h1>
+                <p className="mt-2 text-gray-600"></p>
               </div>
-            )}
+              {user?.public_display_name && (
+                <div className="text-dark-green/80">
+                  <span className="inline-flex items-center rounded-full bg-dark-green/10 px-3 py-1 font-medium">
+                    {user.public_display_name}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-        <div className="flex flex-col lg:flex-row gap-8 items-start">
-          {/* Sidebar */}
-          <aside className="w-full lg:w-1/4">
-            <div className="bg-white rounded-2xl shadow-sm ring-1 ring-black/5 p-6">
+        <div className="flex flex-col lg:flex-row gap-8 items-start min-w-0">
+          <aside className="w-full lg:w-1/4 shrink-0 relative z-20">
+            <div className="bg-white rounded-2xl shadow-sm p-6 sticky top-24 z-20">
               <nav className="space-y-2">
                 {tabs.map(tab => (
                   <NavLink
@@ -140,43 +139,43 @@ export default function Account() {
                     }
                   >
                     <tab.icon className="w-5 h-5" />
-                    <span>{tab.name}</span>
+                    <span className="truncate">{tab.name}</span>
                   </NavLink>
                 ))}
               </nav>
             </div>
           </aside>
 
-          {/* Main */}
-        <main className="w-full lg:flex-1">
-          <div className="bg-white rounded-2xl shadow-sm ring-1 ring-black/5 p-6">
-            <h2 className="text-2xl font-bold text-dark-green mb-6 flex items-center gap-3">
-              {currentTabDef.name}
-            </h2>
+          <main className="w-full lg:flex-1 min-w-0 relative isolate z-0">
+            <div className="bg-white rounded-2xl shadow-sm ring-1 ring-black/5 p-6 max-w-full overflow-hidden">
+              <h2 className="text-2xl font-bold text-dark-green mb-6 flex items-center gap-3">
+                <CurrentIcon className="w-6 h-6" />
+                {currentTabDef.name}
+              </h2>
 
-            <Routes>
-              <Route index element={<Navigate to="profile" replace />} />
-              <Route
-                path="profile"
-                element={
-                  <ProfileTab
-                    onShowPasswordConfirm={() => setShowPasswordConfirm(true)}
-                    password={password}
-                    onPasswordValidated={() => setPassword('')}
-                    active={currentTab === 'profile'}
-                  />
-                }
-              />
-              <Route path="address" element={<AddressTab />} />
-              <Route path="payment" element={<PaymentTab />} />
-              <Route path="orders" element={<OrdersTab />} />
-              <Route path="favorites" element={<FavoritesTab />} />
-              <Route path="impact" element={<ImpactTab />} />
-              <Route path="settings" element={<SettingsTab />} />
-              <Route path="*" element={<Navigate to="profile" replace />} />
-            </Routes>
-          </div>
-        </main>
+              <Routes>
+                <Route index element={<Navigate to="profile" replace />} />
+                <Route
+                  path="profile"
+                  element={
+                    <ProfileTab
+                      onShowPasswordConfirm={() => setShowPasswordConfirm(true)}
+                      password={password}
+                      onPasswordValidated={() => setPassword('')}
+                      active={currentTab === 'profile'}
+                    />
+                  }
+                />
+                <Route path="address" element={<AddressTab />} />
+                <Route path="payment" element={<PaymentTab />} />
+                <Route path="orders" element={<OrdersTab />} />
+                <Route path="favorites" element={<FavoritesTab />} />
+                <Route path="impact" element={<ImpactTab />} />
+                <Route path="settings" element={<SettingsTab />} />
+                <Route path="*" element={<Navigate to="profile" replace />} />
+              </Routes>
+            </div>
+          </main>
         </div>
       </div>
 

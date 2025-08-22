@@ -89,10 +89,6 @@ function commerceDepartmentCode(b: Bundle) { return b.department_data?.code || c
 function commerceDepartmentName(b: Bundle) { return b.department_data?.name || '' }
 function commerceRegionName(b: Bundle) { return b.region_data?.name || '' }
 
-
-/* =========================
-   MultiSelect – dropdown with checkboxes
-   ========================= */
 type Opt = { value: string; label: string }
 
 function MultiSelect({
@@ -138,20 +134,22 @@ function MultiSelect({
         type="button"
         onClick={() => setOpen(o => !o)}
         className="w-full border px-3 py-2 rounded bg-white flex items-center justify-between text-left"
+        aria-haspopup="listbox"
+        aria-expanded={open}
       >
         <span className="truncate">{buttonText || placeholder}</span>
         <ChevronDown className="w-4 h-4 shrink-0" />
       </button>
 
       {open && (
-        <div className="absolute z-20 mt-1 w-full max-h-64 overflow-auto bg-white border rounded-lg shadow">
+        <div className="absolute z-20 mt-1 w-full max-h-[50vh] sm:max-h-64 overflow-auto bg-white border rounded-lg shadow">
           <div className="sticky top-0 bg-white border-b px-3 py-2 flex items-center justify-between">
             <span className="text-xs text-gray-500">{placeholder}</span>
             {value.length > 0 && (
               <button onClick={clearAll} className="text-xs text-dark-green hover:underline">Effacer</button>
             )}
           </div>
-          <ul className="py-1">
+          <ul className="py-1" role="listbox">
             {options.map(opt => (
               <li key={opt.value}>
                 <label className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer">
@@ -178,13 +176,17 @@ export default function Shop() {
   const producerParamLegacy = searchParams.get('producer') || ''
   const producerParam = searchParams.get('producteur') || producerParamLegacy
 
+  const listTopRef = React.useRef<HTMLDivElement>(null)
+
   const [bundles, setBundles] = useState<Bundle[]>([])
   const [filteredBundles, setFilteredBundles] = useState<Bundle[]>([])
   const [showFilters, setShowFilters] = useState(true)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [loading, setLoading] = useState(true)
 
-  const [loading, setLoading] = useState(true) 
-
+  const PAGE_SIZE = 15
+  const initialPage = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
+  const [page, setPage] = useState<number>(initialPage)
 
   const [filters, setFilters] = useState({
     categories: [] as string[],
@@ -203,6 +205,10 @@ export default function Shop() {
     if (producerParam) setFilters(f => ({ ...f, producerNames: [producerParam] }))
     if (commerceParam) setFilters(f => ({ ...f, commerceNames: [commerceParam] }))
   }, [producerParam, commerceParam])
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) setShowFilters(false)
+  }, [])
 
   const prices = useMemo(
     () => bundles.map(b => toNum(b.discounted_price)).filter(Number.isFinite) as number[],
@@ -293,15 +299,23 @@ export default function Shop() {
   const [sortOrder, setSortOrder] = useState<SortOrder>(initialOrder)
 
   useEffect(() => {
+    if ('scrollRestoration' in window.history) {
+      const prev = window.history.scrollRestoration
+      window.history.scrollRestoration = 'manual'
+      return () => { window.history.scrollRestoration = prev }
+    }
+  }, [])
+
+  useEffect(() => {
     const load = async () => {
       try {
-        setLoading(true) 
+        setLoading(true)
         const data = await http.get<Bundle[]>('/api/public-bundles/')
         setBundles(data || [])
       } catch (err) {
         console.error('Erreur lors du chargement des bundles:', err)
       } finally {
-        setLoading(false) 
+        setLoading(false)
       }
     }
     load()
@@ -377,14 +391,22 @@ export default function Shop() {
     }
 
     setFilteredBundles(filtered)
+    setPage(1) 
   }, [filters, searchQuery, bundles])
 
   useEffect(() => {
     const next = new URLSearchParams(searchParams.toString())
     next.set('sortField', sortField)
     next.set('order', sortOrder)
-    setSearchParams(next, { replace: true })
-  }, [sortField, sortOrder])
+    next.set('page', String(page))
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href)
+      url.searchParams.set('sortField', String(sortField))
+      url.searchParams.set('order', String(sortOrder))
+      url.searchParams.set('page', String(page))
+      window.history.replaceState(window.history.state, '', url.toString())
+    }
+  }, [sortField, sortOrder, page])
 
   const sortedBundles = useMemo(() => {
     const arr = [...filteredBundles]
@@ -443,12 +465,32 @@ export default function Shop() {
       }
     }
 
-    arr.sort((a, b) => {
-      const base = cmp(a, b)
-      return sortOrder === 'asc' ? base : -base
-    })
+    arr.sort((a, b) => (sortOrder === 'asc' ? cmp(a, b) : -cmp(a, b)))
     return arr
   }, [filteredBundles, sortField, sortOrder, allEcoScores])
+
+  const pageCount = Math.max(1, Math.ceil(sortedBundles.length / PAGE_SIZE))
+  const safePage = Math.min(Math.max(page, 1), pageCount)
+  const startIndex = (safePage - 1) * PAGE_SIZE
+  const endIndex = startIndex + PAGE_SIZE
+  const pagedBundles = sortedBundles.slice(startIndex, endIndex)
+
+  useEffect(() => {
+    if (page !== safePage) setPage(safePage)
+  }, [safePage])
+
+  useEffect(() => {
+    const el = listTopRef.current
+    if (!el) return
+    requestAnimationFrame(() => {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' })
+    })
+  }, [page])
+
+  const goToPage = (p: number) => {
+    const clamped = Math.min(Math.max(p, 1), pageCount)
+    setPage(clamped)
+  }
 
   const stats = useMemo(() => {
     const producers = new Set<string>()
@@ -480,8 +522,7 @@ export default function Shop() {
                 </p>
               </div>
 
-              {/* KPIs responsive (2 cols on mobile, 4 on >=sm) */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 divide-x rounded-2xl bg-[#F7FAF4] text-dark-green">
+              <div className="grid grid-cols-2 sm:grid-cols-4 overflow-hidden rounded-2xl bg-[#F7FAF4] text-dark-green divide-y sm:divide-y-0 sm:divide-x">
                 <div className="px-5 py-3 text-center">
                   <div className="text-2xl font-bold">{stats.bundles}</div>
                   <div className="text-xs uppercase tracking-wide">Produits</div>
@@ -508,22 +549,23 @@ export default function Shop() {
             </div>
 
             <div className="mt-6 flex flex-col gap-4">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4">
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className="flex items-center space-x-2 bg-white px-4 py-2 rounded-lg shadow-sm border hover:shadow-md transition-shadow"
+                  className="flex items-center justify-center sm:justify-start space-x-2 bg-white px-4 py-2 rounded-lg shadow-sm border hover:shadow-md transition-shadow w-full sm:w-auto"
+                  aria-expanded={showFilters}
                 >
                   <SlidersHorizontal className="w-5 h-5" />
                   <span>Filtres</span>
                 </button>
 
-                <div className="flex items-end gap-4 w-full sm:w-auto">
-                  <div>
+                <div className="w-full sm:w-auto flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
+                  <div className="min-w-0">
                     <label className="block text-xs text-gray-500 mb-1">Critère</label>
                     <select
                       value={sortField}
                       onChange={e => setSortField(e.target.value as SortField)}
-                      className="bg-white px-3 py-2 rounded-lg shadow-sm border"
+                      className="w-full bg-white px-3 py-2 rounded-lg shadow-sm border"
                       aria-label="Critère de tri"
                     >
                       <optgroup label="Prix & remises">
@@ -552,12 +594,12 @@ export default function Shop() {
                     </select>
                   </div>
 
-                  <div>
+                  <div className="min-w-0">
                     <label className="block text-xs text-gray-500 mb-1">Ordre</label>
                     <select
                       value={sortOrder}
                       onChange={e => setSortOrder(e.target.value as SortOrder)}
-                      className="bg-white px-3 py-2 rounded-lg shadow-sm border"
+                      className="w-full bg-white px-3 py-2 rounded-lg shadow-sm border"
                       aria-label="Ordre de tri"
                     >
                       <option value="asc">
@@ -569,17 +611,17 @@ export default function Shop() {
                     </select>
                   </div>
 
-                  <div className="flex bg-white rounded-lg shadow-sm border">
+                  <div className="flex sm:ml-1 bg-white rounded-lg shadow-sm border w-full sm:w-auto justify-end">
                     <button
                       onClick={() => setViewMode('grid')}
-                      className={`p-2 rounded-l-lg ${viewMode === 'grid' ? 'bg-dark-green text-pale-yellow' : 'text-gray-600 hover:bg-gray-50'}`}
+                      className={`p-2 rounded-l-lg ${viewMode === 'grid' ? 'bg-dark-green text-pale-yellow' : 'text-gray-600 hover:bg-gray-50'} w-1/2 sm:w-auto`}
                       aria-label="Vue grille"
                     >
                       <Grid className="w-5 h-5" />
                     </button>
                     <button
                       onClick={() => setViewMode('list')}
-                      className={`p-2 rounded-r-lg ${viewMode === 'list' ? 'bg-dark-green text-pale-yellow' : 'text-gray-600 hover:bg-gray-50'}`}
+                      className={`p-2 rounded-r-lg ${viewMode === 'list' ? 'bg-dark-green text-pale-yellow' : 'text-gray-600 hover:bg-gray-50'} w-1/2 sm:w-auto`}
                       aria-label="Vue liste"
                     >
                       <List className="w-5 h-5" />
@@ -606,14 +648,12 @@ export default function Shop() {
           {sortedBundles.length} produit{sortedBundles.length > 1 ? 's' : ''} trouvé{sortedBundles.length > 1 ? 's' : ''}.
         </p>
 
-        {/* MAIN WRAPPER: column on mobile, row on >=lg */}
         <div className="flex flex-col lg:flex-row gap-8">
           {showFilters && (
-            <div className="w-full lg:w-80 flex-shrink-0">
-              <div className="bg-white p-6 rounded-lg shadow-sm lg:sticky lg:top-24">
+            <div className="w-full lg:w-80 flex-shrink-0 min-w-0">
+              <div className="bg-white p-6 rounded-lg shadow-sm lg:sticky lg:top-24 lg:max-h-none lg:overflow-visible">
                 <h3 className="text-lg font-semibold text-dark-green mb-4">Filtres</h3>
 
-                {/* Categories */}
                 <div className="mb-6">
                   <label className="block text-sm font-medium mb-1">Catégories</label>
                   <MultiSelect
@@ -624,7 +664,6 @@ export default function Shop() {
                   />
                 </div>
 
-                {/* Price max */}
                 <div className="mb-6">
                   <label className="block text-sm font-medium mb-1">Prix max.</label>
                   <div className="flex items-center justify-between text-sm text-gray-600 mb-1">
@@ -659,7 +698,6 @@ export default function Shop() {
                   </div>
                 </div>
 
-                {/* Producers */}
                 <div className="mb-6">
                   <label className="block text-sm font-medium mb-1">Producteurs</label>
                   <MultiSelect
@@ -670,7 +708,6 @@ export default function Shop() {
                   />
                 </div>
 
-                {/* Commerces */}
                 <div className="mb-6">
                   <label className="block text-sm font-medium mb-1">Commerces</label>
                   <MultiSelect
@@ -681,7 +718,6 @@ export default function Shop() {
                   />
                 </div>
 
-                {/* Departments */}
                 <div className="mb-6">
                   <label className="block text-sm font-medium mb-1">Origine (Département)</label>
                   <MultiSelect
@@ -692,7 +728,6 @@ export default function Shop() {
                   />
                 </div>
 
-                {/* Eco-score */}
                 <div className="mb-6">
                   <label className="block text-sm font-medium mb-1">Score écologique</label>
                   <MultiSelect
@@ -703,7 +738,6 @@ export default function Shop() {
                   />
                 </div>
 
-                {/* Certifications */}
                 <div className="mb-6">
                   <label className="block text-sm font-medium mb-1">Certification</label>
                   <MultiSelect
@@ -714,7 +748,6 @@ export default function Shop() {
                   />
                 </div>
 
-                {/* Min rating */}
                 <div className="mb-6">
                   <label className="block text-sm font-medium mb-1">Note minimum (bundle)</label>
                   <div className="flex items-center gap-2">
@@ -734,7 +767,6 @@ export default function Shop() {
                   </div>
                 </div>
 
-                {/* Stock */}
                 <div className="mb-6">
                   <label className="flex items-center gap-2">
                     <input
@@ -748,7 +780,6 @@ export default function Shop() {
                   <p className="text-xs text-gray-500 mt-1">Masque les lots en rupture.</p>
                 </div>
 
-                {/* Reset */}
                 <div className="mt-6 text-center">
                   <button
                     onClick={() =>
@@ -784,22 +815,70 @@ export default function Shop() {
                 Aucun produit trouvé
               </div>
             ) : (
-              <div
-                className={`grid gap-6 ${
-                  viewMode === 'grid'
-                    ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
-                    : 'grid-cols-1'
-                }`}
-              >
-                {sortedBundles.map((bundle) => (
-                  <BundleCard key={bundle.id} bundle={bundle} viewMode={viewMode} />
-                ))}
-              </div>
+              <>
+                <div ref={listTopRef} className="h-px scroll-mt-28 md:scroll-mt-32" />
+                <div
+                  className={`grid gap-6 ${
+                    viewMode === 'grid'
+                      ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
+                      : 'grid-cols-1'
+                  }`}
+                >
+                  {pagedBundles.map((bundle) => (
+                    <BundleCard key={bundle.id} bundle={bundle} viewMode={viewMode} />
+                  ))}
+                </div>
+
+                {/* Pagination */}
+                <nav className="mt-8 flex items-center justify-between" aria-label="Pagination">
+                  <div className="text-sm text-gray-600">
+                    Affichage de {sortedBundles.length === 0 ? 0 : startIndex + 1}
+                    {'–'}
+                    {Math.min(endIndex, sortedBundles.length)} sur {sortedBundles.length} produits
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => goToPage(page - 1)}
+                      disabled={page <= 1}
+                      className="px-3 py-2 rounded border bg-white text-gray-700 disabled:opacity-50"
+                    >
+                      Précédent
+                    </button>
+
+                    {Array.from({ length: pageCount }).map((_, i) => {
+                      const p = i + 1
+                      if (p === 1 || p === pageCount || Math.abs(p - page) <= 1) {
+                        return (
+                          <button
+                            key={p}
+                            onClick={() => goToPage(p)}
+                            className={`px-3 py-2 rounded border ${
+                              p === page ? 'bg-dark-green text-white border-dark-green' : 'bg-white text-gray-700'
+                            }`}
+                            aria-current={p === page ? 'page' : undefined}
+                          >
+                            {p}
+                          </button>
+                        )
+                      }
+                      if (p === 2 && page > 3) return <span key="left-ellipsis" className="px-2">…</span>
+                      if (p === pageCount - 1 && page < pageCount - 2) return <span key="right-ellipsis" className="px-2">…</span>
+                      return null
+                    })}
+
+                    <button
+                      onClick={() => goToPage(page + 1)}
+                      disabled={page >= pageCount}
+                      className="px-3 py-2 rounded border bg-white text-gray-700 disabled:opacity-50"
+                    >
+                      Suivant
+                    </button>
+                  </div>
+                </nav>
+              </>
             )}
           </div>
-
-
-          
         </div>
       </div>
     </div>

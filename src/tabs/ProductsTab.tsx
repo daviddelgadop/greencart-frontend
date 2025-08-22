@@ -121,8 +121,6 @@ export default function ProductsTab() {
     { value: 'bouteille 1 l', label: 'Bouteille 1 l' },
   ]
 
-
-
   const ECO_SCORE_OPTIONS: { value: string; label: string }[] = [
     { value: 'A', label: 'A (Très faible impact)' },
     { value: 'B', label: 'B (Faible impact)' },
@@ -541,11 +539,10 @@ export default function ProductsTab() {
 
   const displayUnit = (u?: string) => (u ?? '').replace(/\bl\b/g, 'L')
 
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0">
       <div className="bg-white rounded-lg p-6 shadow-sm">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           <h3 className="text-lg font-semibold text-dark-green"></h3>
           {!showForm && !editingId && (
             <button
@@ -554,7 +551,7 @@ export default function ProductsTab() {
                 setShowForm(true)
                 setTimeout(() => formBoxRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0)
               }}
-              className="bg-dark-green text-pale-yellow px-4 py-2 rounded-full font-semibold hover:bg-dark-green/90 transition-colors flex items-center space-x-2"
+              className="w-full sm:w-auto bg-dark-green text-pale-yellow px-4 py-2 rounded-full font-semibold hover:bg-dark-green/90 transition-colors flex items-center justify-center sm:justify-start space-x-2"
             >
               <Plus className="w-4 h-4" />
               <span>Nouveau produit</span>
@@ -750,23 +747,33 @@ export default function ProductsTab() {
               <label htmlFor="certifications" className="text-sm font-semibold text-green-800">
                 Certification
               </label>
-              <select
-                name="certifications"
-                id="certifications"
-                multiple
-                value={form.certifications}
-                onChange={handleChange}
-                ref={certificationsRef}
-                disabled={!selectedCompanyId}
-                className={`border border-gray-300 p-2 w-full rounded ${!selectedCompanyId ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-              >
-                {uniqueCertificationOptions.map(cert => (
-                  <option key={cert.id} value={String(cert.id)}>
-                    {cert.code}
-                  </option>
-                ))}
-              </select>
+
+              <Select
+                inputId="certifications"
+                isMulti
+                closeMenuOnSelect={false}
+                isDisabled={!selectedCompanyId}
+                options={uniqueCertificationOptions.map(cert => ({
+                  value: String(cert.id),
+                  label: cert.code,
+                }))}
+                value={uniqueCertificationOptions
+                  .filter(cert => form.certifications.includes(String(cert.id)))
+                  .map(cert => ({ value: String(cert.id), label: cert.code }))}
+                onChange={(selected) =>
+                  setForm(prev => ({
+                    ...prev,
+                    certifications: (selected as { value: string; label: string }[] | null)?.map(o => o.value) ?? [],
+                  }))
+                }
+                placeholder={selectedCompanyId ? "Sélectionner une ou plusieurs certifications..." : "Choisissez d'abord un commerce"}
+                className="react-select-container"
+                classNamePrefix="react-select"
+                menuPortalTarget={document.body}
+                styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }}
+              />
             </div>
+
 
             <div className="mb-4">
               <label className="block text-sm font-semibold text-dark-green mb-2">
@@ -834,10 +841,10 @@ export default function ProductsTab() {
             </div>
           </div>
 
-          <div className="mt-6 flex items-center gap-3">
+          <div className="mt-6 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             <button
               onClick={handleSave}
-              className="bg-dark-green text-pale-yellow px-6 py-2 rounded-full font-semibold hover:bg-dark-green/90 transition-colors"
+              className="w-full sm:w-auto bg-dark-green text-pale-yellow px-6 py-2 rounded-full font-semibold hover:bg-dark-green/90 transition-colors"
             >
               {editingId ? 'Mettre à jour le produit' : 'Sauvegarder le produit'}
             </button>
@@ -847,7 +854,7 @@ export default function ProductsTab() {
                 resetForm()
                 setShowForm(false)
               }}
-              className="px-6 py-2 rounded-full border border-gray-300 text-gray-700 hover:bg-gray-50"
+              className="w-full sm:w-auto px-6 py-2 rounded-full border border-gray-300 text-gray-700 hover:bg-gray-50"
             >
               {editingId ? 'Annuler la modification' : 'Annuler'}
             </button>
@@ -856,25 +863,110 @@ export default function ProductsTab() {
       )}
 
       <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-        <div className="flex justify-between items-center px-6 pb-4">
+        <div className="flex flex-col sm:flex-row justify-between items-stretch gap-3 px-6 pb-4">
           <input
             type="text"
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             placeholder="Rechercher par nom, variété ou commerce..."
-            className="form-input w-full max-w-sm"
+            className="form-input w-full sm:max-w-sm"
           />
         </div>
 
+        {/* Mobile cards */}
+        <div className="md:hidden px-4 pb-4 space-y-3">
+          {filteredProducts.length === 0 ? (
+            <p className="text-gray-500 px-2">Aucun produit enregistré.</p>
+          ) : (
+            filteredProducts.map(prod => {
+              const statusActive = (prod.stock ?? 0) > 0
+              return (
+                <div key={prod.id} className="border rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-14 h-14 rounded-md bg-gray-50 overflow-hidden shrink-0">
+                      {prod.images?.[0]?.image ? (
+                        <img
+                          src={prod.images[0].image}
+                          alt="Produit"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">—</div>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="font-semibold text-dark-green truncate">{prod.title}</div>
+                          <div className="text-xs text-gray-600 truncate">
+                            {prod.company_data?.name || prod.company_name || '—'}
+                          </div>
+                          <div className="text-xs text-gray-500 truncate">
+                            {prod.catalog_entry_data?.category?.label || '—'}
+                          </div>
+                        </div>
+                        <span
+                          className={`px-2 py-1 rounded text-[11px] shrink-0 ${statusActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
+                        >
+                          {statusActive ? 'Actif' : 'Rupture'}
+                        </span>
+                      </div>
+
+                      <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+                        <div className="text-gray-700">
+                          Stock: <span className="font-medium">{prod.stock} {displayUnit(prod.unit)}</span>
+                        </div>
+                        <div className="text-gray-700">
+                          Vendus: <span className="font-medium">{prod.sold_units ?? 0} {displayUnit(prod.unit)}</span>
+                        </div>
+                        <div className="text-gray-700">
+                          Prix: <span className="font-semibold">{prod.original_price} €</span>
+                        </div>
+                        <div className="text-gray-700">
+                          {prod.ratings_count === 0 ? (
+                            <span>Non noté</span>
+                          ) : (
+                            <span className="font-medium">{prod.avg_rating}/5</span>
+                          )}{' '}
+                          {prod.ratings_count > 0 && <span className="text-gray-500">({prod.ratings_count} avis)</span>}
+                        </div>
+                      </div>
+
+                      <div className="mt-3 grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+                        <button
+                          onClick={() => handleEdit(prod)}
+                          className="w-full sm:w-auto inline-flex items-center justify-center gap-1 px-3 py-2 rounded-full border text-dark-green hover:bg-gray-50"
+                          title="Modifier"
+                        >
+                          <Edit className="w-4 h-4" />
+                          Modifier
+                        </button>
+                        <button
+                          onClick={() => handleDelete(prod.id)}
+                          className="w-full sm:w-auto inline-flex items-center justify-center gap-1 px-3 py-2 rounded-full border text-red-600 hover:bg-red-50"
+                          title="Supprimer"
+                        >
+                          <Trash className="w-4 h-4" />
+                          Supprimer
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            })
+          )}
+        </div>
+
+        {/* Desktop table */}
         {filteredProducts.length === 0 ? (
-          <p className="text-gray-500 px-6 pb-6">Aucun produit enregistré.</p>
+          <p className="hidden md:block text-gray-500 px-6 pb-6">Aucun produit enregistré.</p>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="hidden md:block overflow-x-auto">
             <div className="max-w-6xl mx-auto">
               <table className="w-full table-fixed">
                 <thead className="bg-gray-50">
                   <tr>
-
                     <th
                       onClick={() => handleSort('company')}
                       className="px-6 py-3 text-xs font-medium text-gray-700 uppercase cursor-pointer select-none hover:text-dark-green"
@@ -901,15 +993,6 @@ export default function ProductsTab() {
                       {sortField === 'title' ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : <span className="text-gray-300">▲</span>}
                     </th>
 
-
-                    {/* <th
-                      onClick={() => handleSort('variety')}
-                      className="px-6 py-3 text-xs font-medium text-gray-700 uppercase cursor-pointer select-none hover:text-dark-green"
-                    >
-                      Variété
-                      {sortField === 'variety' ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : <span className="text-gray-300">▲</span>}
-                    </th>*/}
-
                     <th
                       onClick={() => handleSort('stock')}
                       className="px-6 py-3 text-xs font-medium text-gray-700 uppercase cursor-pointer select-none hover:text-dark-green"
@@ -934,7 +1017,6 @@ export default function ProductsTab() {
                       {sortField === 'original_price' ? (sortDirection === 'asc' ? ' ▲' : ' ▼') : <span className="text-gray-300">▲</span>}
                     </th>
 
-
                     <th
                       onClick={() => handleSort('avg_rating')}
                       className="px-6 py-3 text-xs font-medium text-gray-700 uppercase cursor-pointer select-none hover:text-dark-green"
@@ -954,7 +1036,6 @@ export default function ProductsTab() {
                 <tbody className="bg-white divide-y divide-gray-200 text-xs">
                   {filteredProducts.map(prod => (
                     <tr key={prod.id}>
-
                       <td className="px-4 py-3">{prod.company_data?.name || prod.company_name || '—'}</td>
                       <td className="px-4 py-3">{prod.catalog_entry_data?.category?.label || '—'}</td>
 
@@ -970,7 +1051,6 @@ export default function ProductsTab() {
                         )}
                       </td>
                       <td className="px-4 py-3 font-medium text-gray-900">{prod.title}</td>
-                      {/* <td className="px-4 py-3">{prod.variety || '—'}</td> */}
                       <td className="px-4 py-3 text-right">
                         {prod.stock} {displayUnit(prod.unit)}
                       </td>
@@ -999,8 +1079,8 @@ export default function ProductsTab() {
                         <span
                           className={`px-2 py-1 rounded text-xs ${
                             (prod.stock ?? 0) > 0
-                              ? 'bg-green-100 text-green-800'   // Actif
-                              : 'bg-red-100 text-red-800'       // Rupture
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-red-100 text-red-800'
                           }`}
                         >
                           {(prod.stock ?? 0) > 0 ? 'Actif' : 'Rupture'}

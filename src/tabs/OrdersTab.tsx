@@ -72,7 +72,7 @@ function normalizeStatus(s: string) {
 }
 function statusClasses(s: string) {
   const v = normalizeStatus(s)
-  if (v === 'Évaluée') return 'bg-green-100 text-green-800' 
+  if (v === 'Évaluée') return 'bg-green-100 text-green-800'
   if (v === 'Livrée') return 'bg-green-100 text-green-800'
   if (v === 'En cours') return 'bg-orange-100 text-orange-800'
   if (v === 'En attente') return 'bg-yellow-100 text-yellow-800'
@@ -131,15 +131,14 @@ const clamp0 = (n: number) => (n < 0 ? 0 : n)
 const fmtEuro = (n: number) => `${n.toFixed(2)}€`
 const fmtKg = (n: number) => `${n.toFixed(2)} kg`
 
-/* Botones */
 const btnDetails =
-  "bg-white text-dark-green border border-dark-green px-2.5 py-1.5 rounded-full font-semibold text-sm hover:bg-dark-green hover:text-pale-yellow shadow-sm transition-colors"
+  'bg-white text-dark-green border border-dark-green px-2.5 py-1.5 rounded-full font-semibold text-sm hover:bg-dark-green hover:text-pale-yellow shadow-sm transition-colors'
 const btnEval =
-  "bg-white text-dark-green border border-dark-green px-2.5 py-1.5 rounded-full font-semibold text-sm hover:bg-dark-green hover:text-pale-yellow shadow-sm transition-colors"
+  'bg-white text-dark-green border border-dark-green px-2.5 py-1.5 rounded-full font-semibold text-sm hover:bg-dark-green hover:text-pale-yellow shadow-sm transition-colors'
 const btnReorder =
-  "bg-white text-dark-green border border-dark-green px-2.5 py-1.5 rounded-full font-semibold text-sm hover:bg-dark-green hover:text-pale-yellow shadow-sm transition-colors"
+  'bg-white text-dark-green border border-dark-green px-2.5 py-1.5 rounded-full font-semibold text-sm hover:bg-dark-green hover:text-pale-yellow shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
 const btnActive =
-  "bg-dark-green text-pale-yellow px-2.5 py-1.5 rounded-full font-semibold text-sm hover:bg-dark-green/90 shadow-sm transition-colors"
+  'bg-dark-green text-pale-yellow px-2.5 py-1.5 rounded-full font-semibold text-sm hover:bg-dark-green/90 shadow-sm transition-colors'
 
 function formatAddress(a?: Address | null): string {
   if (!a) return '—'
@@ -152,7 +151,6 @@ function formatAddress(a?: Address | null): string {
   return parts.length ? parts.join(', ') : (a.city?.name || '—')
 }
 
-/* Tracking */
 function hashString(s: string): number {
   let h = 5381
   for (let i = 0; i < s.length; i++) h = ((h << 5) + h) + s.charCodeAt(i)
@@ -174,7 +172,6 @@ function generateTrackingFor(order: Order): string | null {
   return `TRK-${body}${chk}`
 }
 
-/* Reorder adapters */
 function firstImage(orderItem: OrderItem): string {
   return orderItem.bundle?.items?.[0]?.product?.images?.[0]?.image || ''
 }
@@ -203,7 +200,6 @@ function toCartBundleItems(items: BundleItem[]): CartBundleItem[] {
   })
 }
 
-/* Rating widgets */
 function Star({ filled, onClick, disabled = false }: { filled: boolean; onClick: () => void; disabled?: boolean }) {
   return (
     <button
@@ -282,7 +278,6 @@ export default function OrdersTab() {
     )
   }, [orders, search])
 
-  /* Exclusión mutua */
   const openDetails = (id: number) => {
     setExpandedId(prev => (prev === id ? null : id))
     setRatingId(null)
@@ -353,7 +348,6 @@ export default function OrdersTab() {
     }
   }
 
-  /* Envío conjunto: orden + items */
   const submitAllRatings = async (order: Order) => {
     const orderRated = !!order.customer_rating
     const orderDraft = orderRatingDraft[order.id] || { rating: order.customer_rating || 0, note: order.customer_note || '' }
@@ -413,17 +407,17 @@ export default function OrdersTab() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3">
+    <div className="space-y-6 min-w-0">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <input
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Rechercher par code, statut, ville, producteur, produit…"
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-dark-green"
+          className="w-full min-w-0 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-dark-green"
         />
         <button
           onClick={fetchOrders}
-          className="bg-dark-green text-pale-yellow px-2.5 py-1.5 rounded-full font-semibold text-sm hover:bg-dark-green/90 shadow-sm transition-colors"
+          className="w-full sm:w-auto bg-dark-green text-pale-yellow px-3 py-2 rounded-full font-semibold text-sm hover:bg-dark-green/90 shadow-sm transition-colors"
         >
           Actualiser
         </button>
@@ -469,9 +463,9 @@ export default function OrdersTab() {
                 key={order.id}
                 className={`rounded-lg p-6 shadow-sm transition-colors ${(isExpanded || ratingId === order.id) ? 'bg-emerald-50' : 'bg-white'}`}
               >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-start gap-3">
-                    <div className="flex -space-x-2">
+                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 mb-4">
+                  <div className="flex items-start gap-3 min-w-0">
+                    <div className="flex -space-x-2 flex-wrap">
                       {thumbnails.length > 0 ? (
                         thumbnails.map((src, idx) => (
                           <a key={idx} href={src} className="inline-block">
@@ -488,33 +482,32 @@ export default function OrdersTab() {
                         </div>
                       )}
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-dark-green">
-                        Commande {order.order_code}
+                    <div className="min-w-0">
+                      <h3 className="font-semibold text-dark-green truncate">
+                        Commande <span className="break-all">{order.order_code}</span>
                       </h3>
-                      <p className="text-gray-600 text-sm">
-                        {formatDateTimeFR(order.created_at)}
-                      </p>
+                      <p className="text-gray-600 text-sm">{formatDateTimeFR(order.created_at)}</p>
                       <p className="text-gray-500 text-xs">
                         {order.shipping_address?.city?.name ||
                           order.billing_address?.city?.name ||
                           '—'}
                       </p>
                       {tracking ? (
-                        <p className="text-xs font-medium text-gray-700 mt-1">Tracking: {tracking}</p>
+                        <p className="text-xs font-medium text-gray-700 mt-1 break-all">Tracking: {tracking}</p>
                       ) : null}
                     </div>
                   </div>
 
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusClasses(statusLabel)}`}>
-                    {statusLabel}
-                  </span>
+                  <div className="md:shrink-0">
+                    <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${statusClasses(statusLabel)}`}>
+                      {statusLabel}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
                   <div className="text-sm text-gray-700">
-                    {itemsQty} unité{itemsQty > 1 ? 's' : ''} 
-                    ({itemsDistinct} produit{itemsDistinct > 1 ? 's' : ''})
+                    {itemsQty} unité{itemsQty > 1 ? 's' : ''} ({itemsDistinct} produit{itemsDistinct > 1 ? 's' : ''})
                   </div>
 
                   <div className="text-sm text-gray-700 flex flex-wrap gap-x-4 gap-y-1">
@@ -523,16 +516,15 @@ export default function OrdersTab() {
                     <span>CO₂ évité: <span className="font-medium">{fmtKg(avoidedCO2)}</span></span>
                   </div>
 
-                  <div className="text-right text-lg font-bold text-dark-green">
+                  <div className="text-left md:text-right text-lg font-bold text-dark-green">
                     {fmtEuro(total)}
                   </div>
                 </div>
 
-                {/* Botones con estado activo */}
-                <div className="mt-4 flex flex-wrap gap-2">
+                <div className="mt-4 flex flex-col sm:flex-row flex-wrap gap-2">
                   <button
                     onClick={() => openDetails(order.id)}
-                    className={isExpanded ? btnActive : btnDetails}
+                    className={`w-full sm:w-auto ${isExpanded ? btnActive : btnDetails}`}
                   >
                     {isExpanded ? 'Masquer les détails' : 'Voir les détails'}
                   </button>
@@ -540,7 +532,7 @@ export default function OrdersTab() {
                   {allowRate && (
                     <button
                       onClick={() => openRating(order.id)}
-                      className={ratingId === order.id ? btnActive : btnEval}
+                      className={`w-full sm:w-auto ${ratingId === order.id ? btnActive : btnEval}`}
                     >
                       {evalBtnLabel}
                     </button>
@@ -548,18 +540,17 @@ export default function OrdersTab() {
 
                   <button
                     onClick={() => onReorder(order)}
-                    className={btnReorder}
+                    className={`w-full sm:w-auto ${btnReorder}`}
                     disabled={!allowReorder}
+                    title={allowReorder ? 'Recommander cette commande' : 'Articles indisponibles'}
                   >
                     Recommander
                   </button>
                 </div>
 
-                {/* ÉVALUER */}
                 {allowRate && ratingId === order.id && (
                   <div className="mt-4 border rounded-lg p-4 bg-amber-50">
-                    {/* Orden */}
-                    <div className="flex items-center justify-between gap-3">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                       <div className="flex items-center gap-3">
                         <span className="text-sm text-gray-700">Évaluation de la commande</span>
                         <StarRating
@@ -581,7 +572,6 @@ export default function OrdersTab() {
                       disabled={orderRated}
                     />
 
-                    {/* Items */}
                     <div className="mt-4">
                       <div className="text-xs uppercase tracking-wide text-gray-600 mb-2">Articles de la commande</div>
                       <ul className="space-y-3">
@@ -594,9 +584,9 @@ export default function OrdersTab() {
 
                           return (
                             <li key={item.id} className="rounded-lg border p-3 bg-white">
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="flex items-start gap-3">
-                                  <div className="w-12 h-12 rounded-md bg-gray-50 overflow-hidden">
+                              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                                <div className="flex items-start gap-3 min-w-0">
+                                  <div className="w-12 h-12 rounded-md bg-gray-50 overflow-hidden shrink-0">
                                     {firstImg ? (
                                       <a href={firstImg} className="inline-block w-full h-full">
                                         <img
@@ -609,14 +599,14 @@ export default function OrdersTab() {
                                       <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">—</div>
                                     )}
                                   </div>
-                                  <div>
-                                    <div className="font-medium text-sm text-gray-900">
-                                      <a href={`/bundle/${item.bundle?.id}`} className="hover:underline hover:text-dark-green">
+                                  <div className="min-w-0">
+                                    <div className="font-medium text-sm text-gray-900 truncate">
+                                      <a href={`/bundle/${item.bundle?.id}`} className="hover:underline hover:text-dark-green break-words">
                                         {item.bundle?.title ?? 'Bundle'}
                                       </a>
                                     </div>
                                     {companyName ? (
-                                      <div className="text-xs text-gray-600">{companyName}</div>
+                                      <div className="text-xs text-gray-600 truncate">{companyName}</div>
                                     ) : null}
                                     <div className="text-xs text-gray-600">
                                       Qté: {item.quantity}
@@ -629,13 +619,13 @@ export default function OrdersTab() {
                                   </div>
                                 </div>
 
-                                <div className="text-sm font-semibold text-dark-green">
+                                <div className="text-sm font-semibold text-dark-green text-right sm:text-left">
                                   {fmtEuro(safeNumber(item.total_price))}
                                 </div>
                               </div>
 
                               <div className="mt-3 rounded-md bg-amber-50 p-3">
-                                <div className="flex items-center justify-between gap-2">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                                   <div className="flex items-center gap-2">
                                     <span className="text-xs text-gray-700">Note</span>
                                     <StarRating
@@ -663,11 +653,10 @@ export default function OrdersTab() {
                       </ul>
                     </div>
 
-                    {/* Guardar todo */}
-                    <div className="mt-4 flex justify-end">
+                    <div className="mt-4 flex flex-col sm:flex-row justify-end gap-2">
                       <button
                         onClick={() => submitAllRatings(order)}
-                        className="bg-white text-dark-green border border-dark-green px-3 py-2 rounded-full font-semibold text-sm hover:bg-dark-green hover:text-pale-yellow shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full sm:w-auto bg-white text-dark-green border border-dark-green px-3 py-2 rounded-full font-semibold text-sm hover:bg-dark-green hover:text-pale-yellow shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         disabled={orderRated}
                         title={orderRated ? 'Commande déjà évaluée' : 'Enregistrer toutes les évaluations'}
                       >
@@ -677,7 +666,6 @@ export default function OrdersTab() {
                   </div>
                 )}
 
-                {/* DÉTAILS (sin evaluación) */}
                 {isExpanded && (
                   <div className="mt-4 border-t pt-4">
                     <div className="grid md:grid-cols-3 gap-4">
@@ -687,9 +675,9 @@ export default function OrdersTab() {
                             const firstImg = item.bundle?.items?.[0]?.product?.images?.[0]?.image
                             const companyName = item.bundle?.items?.[0]?.product?.company_data?.name || ''
                             return (
-                              <li key={item.id} className="flex items-start justify-between">
-                                <div className="flex items-start gap-3">
-                                  <div className="w-12 h-12 rounded-md bg-gray-50 overflow-hidden">
+                              <li key={item.id} className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                                <div className="flex items-start gap-3 min-w-0">
+                                  <div className="w-12 h-12 rounded-md bg-gray-50 overflow-hidden shrink-0">
                                     {firstImg ? (
                                       <a href={firstImg} className="inline-block w-full h-full">
                                         <img
@@ -702,17 +690,17 @@ export default function OrdersTab() {
                                       <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">—</div>
                                     )}
                                   </div>
-                                  <div>
-                                    <div className="font-medium text-sm text-gray-900">
+                                  <div className="min-w-0">
+                                    <div className="font-medium text-sm text-gray-900 truncate">
                                       <a
                                         href={`/bundle/${item.bundle?.id}`}
-                                        className="hover:underline hover:text-dark-green"
+                                        className="hover:underline hover:text-dark-green break-words"
                                       >
                                         {item.bundle?.title ?? 'Bundle'}
                                       </a>
                                     </div>
                                     {companyName ? (
-                                      <div className="text-xs text-gray-600">{companyName}</div>
+                                      <div className="text-xs text-gray-600 truncate">{companyName}</div>
                                     ) : null}
                                     <div className="text-xs text-gray-600">
                                       Qté: {item.quantity}
@@ -751,15 +739,15 @@ export default function OrdersTab() {
                       <div className="space-y-3">
                         <div>
                           <div className="text-xs uppercase tracking-wide text-gray-500 mb-1">Adresse de livraison</div>
-                          <div className="text-sm text-gray-800">{formatAddress(order.shipping_address)}</div>
+                          <div className="text-sm text-gray-800 break-words">{formatAddress(order.shipping_address)}</div>
                         </div>
                         <div>
                           <div className="text-xs uppercase tracking-wide text-gray-500 mb-1">Adresse de facturation</div>
-                          <div className="text-sm text-gray-800">{formatAddress(order.billing_address)}</div>
+                          <div className="text-sm text-gray-800 break-words">{formatAddress(order.billing_address)}</div>
                         </div>
                         <div>
                           <div className="text-xs uppercase tracking-wide text-gray-500 mb-1">Paiement</div>
-                          <div className="text-sm text-gray-800">
+                          <div className="text-sm text-gray-800 break-words">
                             {order.payment_method_snapshot
                               ? `${order.payment_method_snapshot.provider ?? '—'} ${order.payment_method_snapshot.digits ?? ''}`.trim()
                               : '—'}
@@ -768,7 +756,7 @@ export default function OrdersTab() {
                         {generateTrackingFor(order) ? (
                           <div>
                             <div className="text-xs uppercase tracking-wide text-gray-500 mb-1">Tracking</div>
-                            <div className="text-sm text-gray-800">{generateTrackingFor(order)}</div>
+                            <div className="text-sm text-gray-800 break-all">{generateTrackingFor(order)}</div>
                           </div>
                         ) : null}
                       </div>
@@ -783,4 +771,3 @@ export default function OrdersTab() {
     </div>
   )
 }
-

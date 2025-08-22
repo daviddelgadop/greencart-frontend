@@ -13,7 +13,6 @@ interface Certification {
   certification_number: string
   valid_until: string | null
   file: string
-  // opcionalmente tu backend puede mandar is_active
   is_active?: boolean
 }
 
@@ -243,7 +242,6 @@ export default function CertificationsTab() {
     })
     setEditingId(cert.id)
     setShowForm(true)
-    // setTimeout(() => formBoxRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0)
   }
 
   const handleDelete = (id: number) => {
@@ -261,16 +259,16 @@ export default function CertificationsTab() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0">
       {/* Toolbar */}
       <div className="bg-white rounded-lg p-6 shadow-sm">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3 flex-col md:flex-row">
           <h3 className="text-lg font-semibold text-dark-green"></h3>
           {!showForm && !editingId && (
             <button
               type="button"
               onClick={() => setShowForm(true)}
-              className="bg-dark-green text-pale-yellow px-4 py-2 rounded-full font-semibold hover:bg-dark-green/90 transition-colors"
+              className="w-full md:w-auto bg-dark-green text-pale-yellow px-4 py-2 rounded-full font-semibold hover:bg-dark-green/90 transition-colors"
             >
               Ajouter une certification
             </button>
@@ -382,10 +380,10 @@ export default function CertificationsTab() {
             </div>
           </div>
 
-          <div className="mt-6 flex items-center gap-3">
+          <div className="mt-6 flex flex-col sm:flex-row gap-3">
             <button
               onClick={handleSave}
-              className="bg-dark-green text-pale-yellow px-6 py-2 rounded-full font-semibold hover:bg-dark-green/90 transition-colors"
+              className="w-full sm:w-auto bg-dark-green text-pale-yellow px-6 py-2 rounded-full font-semibold hover:bg-dark-green/90 transition-colors"
             >
               {editingId ? 'Mettre à jour la certification' : 'Sauvegarder la certification'}
             </button>
@@ -396,7 +394,7 @@ export default function CertificationsTab() {
                 resetForm()
                 setShowForm(false)
               }}
-              className="px-6 py-2 rounded-full border border-gray-300 text-gray-700 hover:bg-gray-50"
+              className="w-full sm:w-auto px-6 py-2 rounded-full border border-gray-300 text-gray-700 hover:bg-gray-50"
             >
               {editingId ? 'Annuler la modification' : 'Annuler'}
             </button>
@@ -406,99 +404,150 @@ export default function CertificationsTab() {
 
       {/* List */}
       <div className="bg-white rounded-lg p-6 shadow-sm">
-        <div className="flex justify-between items-center px-2 pb-4">
+        <div className="flex justify-between items-center px-0 md:px-2 pb-4">
           <input
             type="text"
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             placeholder="Rechercher par commerce, type ou numéro..."
-            className="form-input w-full max-w-sm"
+            className="form-input w-full md:max-w-sm"
           />
         </div>
 
         {sortedCertifications.length === 0 ? (
           <p className="text-gray-500">Aucune certification enregistrée.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <div className="max-w-6xl mx-auto">
-              <table className="w-full table-fixed">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th
-                      onClick={() => handleSort('company_name')}
-                      title="Cliquer pour trier par commerce"
-                      className="cursor-pointer px-6 py-3 text-xs font-medium text-gray-700 uppercase text-center select-none hover:text-dark-green"
-                    >
-                      Commerce {sortField === 'company_name' ? (sortDirection === 'asc' ? '▲' : '▼') : <span className="text-gray-300">▲</span>}
-                    </th>
-                    <th
-                      onClick={() => handleSort('code')}
-                      title="Cliquer pour trier par type"
-                      className="cursor-pointer px-6 py-3 text-xs font-medium text-gray-700 uppercase text-center select-none hover:text-dark-green"
-                    >
-                      Type Certification {sortField === 'code' ? (sortDirection === 'asc' ? '▲' : '▼') : <span className="text-gray-300">▲</span>}
-                    </th>
-                    <th
-                      onClick={() => handleSort('certification_number')}
-                      title="Cliquer pour trier par numéro"
-                      className="cursor-pointer px-6 py-3 text-xs font-medium text-gray-700 uppercase text-center select-none hover:text-dark-green"
-                    >
-                      N° de certification {sortField === 'certification_number' ? (sortDirection === 'asc' ? '▲' : '▼') : <span className="text-gray-300">▲</span>}
-                    </th>
-                    <th
-                      onClick={() => handleSort('valid_until')}
-                      title="Cliquer pour trier par date de validité"
-                      className="cursor-pointer px-6 py-3 text-xs font-medium text-gray-700 uppercase text-center select-none hover:text-dark-green"
-                    >
-                      Valide jusqu’au {sortField === 'valid_until' ? (sortDirection === 'asc' ? '▲' : '▼') : <span className="text-gray-300">▲</span>}
-                    </th>
-                    <th className="px-6 py-3 text-xs font-medium text-gray-700 uppercase text-center">Documents</th>
-                    <th className="px-6 py-3 text-xs font-medium text-gray-700 uppercase text-center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200 text-xs">
-                  {sortedCertifications.map(cert => (
-                    <tr key={cert.id}>
-                      <td className="text-center py-2">{cert.company_name || '—'}</td>
-                      <td className="text-center py-2">{cert.code}</td>
-                      <td className="text-center py-2">{cert.certification_number}</td>
-                      <td className="text-center py-2">{cert.valid_until || '—'}</td>
-                      <td className="text-center py-2">
+          <>
+            {/* Mobile cards */}
+            <div className="md:hidden space-y-3">
+              {sortedCertifications.map(cert => (
+                <div key={cert.id} className="border rounded-lg p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="font-semibold text-dark-green truncate">{cert.company_name || '—'}</div>
+                      <div className="text-xs text-gray-600 mt-1">
+                        <span className="font-medium">Type:</span> {cert.code || '—'}
+                      </div>
+                      <div className="text-xs text-gray-600">
+                        <span className="font-medium">N°:</span> {cert.certification_number || '—'}
+                      </div>
+                      <div className="text-xs text-gray-600">
+                        <span className="font-medium">Valide jusqu’au:</span> {cert.valid_until || '—'}
+                      </div>
+                      <div className="text-xs text-gray-600">
+                        <span className="font-medium">Document:</span>{' '}
                         {cert.file ? (
-                          <a
-                            href={cert.file}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 underline"
-                          >
+                          <a href={cert.file} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
                             Voir
                           </a>
                         ) : (
                           '—'
                         )}
-                      </td>
-                      <td className="text-center py-2">
-                        <div className="flex justify-center space-x-4">
-                          <button
-                            onClick={() => handleEdit(cert)}
-                            className="text-dark-green hover:text-medium-brown"
-                          >
-                            <Edit size={16} />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(cert.id)}
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            <Trash size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </div>
+                    </div>
+                    <div className="shrink-0 flex flex-col gap-2">
+                      <button
+                        onClick={() => handleEdit(cert)}
+                        className="inline-flex items-center justify-center w-9 h-9 rounded-full border text-dark-green hover:bg-gray-50"
+                        title="Modifier"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(cert.id)}
+                        className="inline-flex items-center justify-center w-9 h-9 rounded-full border text-red-600 hover:bg-gray-50"
+                        title="Supprimer"
+                      >
+                        <Trash className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
+
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto">
+              <div className="max-w-6xl mx-auto">
+                <table className="w-full table-fixed">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th
+                        onClick={() => handleSort('company_name')}
+                        title="Cliquer pour trier par commerce"
+                        className="cursor-pointer px-6 py-3 text-xs font-medium text-gray-700 uppercase text-center select-none hover:text-dark-green"
+                      >
+                        Commerce {sortField === 'company_name' ? (sortDirection === 'asc' ? '▲' : '▼') : <span className="text-gray-300">▲</span>}
+                      </th>
+                      <th
+                        onClick={() => handleSort('code')}
+                        title="Cliquer pour trier par type"
+                        className="cursor-pointer px-6 py-3 text-xs font-medium text-gray-700 uppercase text-center select-none hover:text-dark-green"
+                      >
+                        Type Certification {sortField === 'code' ? (sortDirection === 'asc' ? '▲' : '▼') : <span className="text-gray-300">▲</span>}
+                      </th>
+                      <th
+                        onClick={() => handleSort('certification_number')}
+                        title="Cliquer pour trier par numéro"
+                        className="cursor-pointer px-6 py-3 text-xs font-medium text-gray-700 uppercase text-center select-none hover:text-dark-green"
+                      >
+                        N° de certification {sortField === 'certification_number' ? (sortDirection === 'asc' ? '▲' : '▼') : <span className="text-gray-300">▲</span>}
+                      </th>
+                      <th
+                        onClick={() => handleSort('valid_until')}
+                        title="Cliquer pour trier par date de validité"
+                        className="cursor-pointer px-6 py-3 text-xs font-medium text-gray-700 uppercase text-center select-none hover:text-dark-green"
+                      >
+                        Valide jusqu’au {sortField === 'valid_until' ? (sortDirection === 'asc' ? '▲' : '▼') : <span className="text-gray-300">▲</span>}
+                      </th>
+                      <th className="px-6 py-3 text-xs font-medium text-gray-700 uppercase text-center">Documents</th>
+                      <th className="px-6 py-3 text-xs font-medium text-gray-700 uppercase text-center">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200 text-xs">
+                    {sortedCertifications.map(cert => (
+                      <tr key={cert.id}>
+                        <td className="text-center py-2">{cert.company_name || '—'}</td>
+                        <td className="text-center py-2">{cert.code}</td>
+                        <td className="text-center py-2">{cert.certification_number}</td>
+                        <td className="text-center py-2">{cert.valid_until || '—'}</td>
+                        <td className="text-center py-2">
+                          {cert.file ? (
+                            <a
+                              href={cert.file}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 underline"
+                            >
+                              Voir
+                            </a>
+                          ) : (
+                            '—'
+                          )}
+                        </td>
+                        <td className="text-center py-2">
+                          <div className="flex justify-center space-x-4">
+                            <button
+                              onClick={() => handleEdit(cert)}
+                              className="text-dark-green hover:text-medium-brown"
+                            >
+                              <Edit size={16} />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(cert.id)}
+                              className="text-red-500 hover:text-red-700"
+                            >
+                              <Trash size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
         )}
       </div>
 

@@ -117,7 +117,15 @@ type Order = {
   items: OrderItem[]
 }
 
-type SortField = '' | 'order_code' | 'status' | 'created_at' | 'total_price' | 'subtotal' | 'shipping_cost' | 'customer_rating'
+type SortField =
+  | ''
+  | 'order_code'
+  | 'status'
+  | 'created_at'
+  | 'total_price'
+  | 'subtotal'
+  | 'shipping_cost'
+  | 'customer_rating'
 
 export default function OrdersTab() {
   const [orders, setOrders] = useState<Order[]>([])
@@ -227,7 +235,6 @@ export default function OrdersTab() {
     })
   }, [orders, search, sortField, sortDir])
 
-
   const statusLabels: Record<string, string> = {
     delivered: 'Livrée',
     pending: 'En attente',
@@ -239,6 +246,7 @@ export default function OrdersTab() {
 
   return (
     <div className="space-y-6">
+      {/* Toolbar */}
       <div className="bg-white rounded-lg p-6 shadow-sm">
         <div className="flex items-center justify-between gap-4">
           <input
@@ -251,7 +259,157 @@ export default function OrdersTab() {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+      {/* Mobile cards */}
+      <div className="md:hidden space-y-3">
+        {filtered.length === 0 ? (
+          <p className="text-gray-500 px-2">Aucune commande trouvée.</p>
+        ) : (
+          filtered.map(o => {
+            const isOpen = expandedCode === o.order_code
+            return (
+              <div
+                key={o.order_code}
+                className={`rounded-lg shadow-sm p-4 transition-colors ${
+                  isOpen ? 'bg-gray-100' : 'bg-white'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="font-semibold text-dark-green">#{o.order_code}</div>
+                    <div className="text-xs text-gray-600">{fmtDate(o.created_at)}</div>
+                    <div className="mt-1 text-sm text-gray-800 truncate">
+                      {addrLine(o.shipping_address_snapshot || o.shipping_address)}
+                    </div>
+                    <div className="mt-1 text-sm">
+                      <span className={`px-2 py-1 rounded text-xs ${statusBadge(o.status)}`}>
+                        {statusLabels[o.status] || o.status}
+                      </span>
+                    </div>
+                    <div className="mt-1 font-medium">{fmtEUR(o.total_price)}</div>
+                    <div className="text-xs text-gray-600">
+                      Note client : {o.customer_rating ? `${Math.round(o.customer_rating)}/5` : '—'}
+                    </div>
+                  </div>
+                  <button
+                    className="shrink-0 inline-flex items-center gap-1 text-dark-green hover:underline"
+                    onClick={() => setExpandedCode(isOpen ? null : o.order_code)}
+                  >
+                    {isOpen ? <>Réduire <ChevronUp className="w-4 h-4" /></> : <>Voir <ChevronDown className="w-4 h-4" /></>}
+                  </button>
+                </div>
+
+                {isOpen && (
+                  <div className="mt-4 space-y-4">
+                    <div className="grid grid-cols-1 gap-3">
+                      <div className="space-y-1">
+                        <h4 className="font-semibold text-gray-800 text-sm">Paiement</h4>
+                        <p className="text-gray-700 text-sm">
+                          Type: <span className="font-medium">{o.payment_method_snapshot?.type || '—'}</span>
+                        </p>
+                        <p className="text-gray-700 text-sm">
+                          Fournisseur: <span className="font-medium">{o.payment_method_snapshot?.provider || '—'}</span>
+                        </p>
+                        {o.payment_method_snapshot?.digits && (
+                          <p className="text-gray-700 text-sm">Digits: **** {o.payment_method_snapshot.digits}</p>
+                        )}
+                      </div>
+
+                      <div className="space-y-1">
+                        <h4 className="font-semibold text-gray-800 text-sm">Adresses</h4>
+                        <p className="text-gray-700 text-sm">
+                          Livraison: <span className="font-medium">{addrLine(o.shipping_address_snapshot || o.shipping_address)}</span>
+                        </p>
+                        <p className="text-gray-700 text-sm">
+                          Facturation: <span className="font-medium">{addrLine(o.billing_address_snapshot || o.billing_address)}</span>
+                        </p>
+                      </div>
+
+                      <div className="space-y-1">
+                        <h4 className="font-semibold text-gray-800 text-sm">Totaux</h4>
+                        <p className="text-gray-700 text-sm">Sous-total: <span className="font-medium">{fmtEUR(o.subtotal)}</span></p>
+                        <p className="text-gray-700 text-sm">Livraison: <span className="font-medium">{fmtEUR(o.shipping_cost)}</span></p>
+                        <p className="text-gray-700 text-sm">Total: <span className="font-semibold">{fmtEUR(o.total_price)}</span></p>
+                        {o.order_total_savings && (
+                          <p className="text-gray-700 text-sm">Économies: <span className="font-medium">{fmtEUR(o.order_total_savings)}</span></p>
+                        )}
+                        {(o.order_total_avoided_waste_kg || o.order_total_avoided_co2_kg) && (
+                          <p className="text-gray-700 text-sm">
+                            Impact: <span className="font-medium">
+                              {o.order_total_avoided_waste_kg ? `${o.order_total_avoided_waste_kg} kg déchets évités` : ''}
+                              {o.order_total_avoided_waste_kg && o.order_total_avoided_co2_kg ? ' • ' : ''}
+                              {o.order_total_avoided_co2_kg ? `${o.order_total_avoided_co2_kg} kg CO₂ évités` : ''}
+                            </span>
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="font-semibold text-gray-800 text-sm mb-2">Produits</h4>
+                      <div className="space-y-2">
+                        {o.items.map(it => (
+                          <div key={it.id} className="border rounded p-3">
+                            <div className="font-medium text-gray-900">
+                              {it.bundle_snapshot?.title || it.bundle?.title || '—'}
+                            </div>
+                            {it.bundle_snapshot?.products && it.bundle_snapshot.products.length > 0 && (
+                              <div className="text-gray-600 mt-1 text-sm">
+                                {it.bundle_snapshot.products.map(p => (
+                                  <div key={`${p.product_id}-${p.category_id}`} className="truncate">
+                                    {p.product_title} × {p.per_bundle_quantity}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            <div className="mt-2 text-sm grid grid-cols-2 gap-1">
+                              <span>Qté: <b>{it.quantity}</b></span>
+                              <span className="text-right">Ligne: <b>{fmtEUR(it.total_price)}</b></span>
+                              <span>
+                                Économie:{' '}
+                                <b>{it.order_item_savings ? fmtEUR(it.order_item_savings) : '—'}</b>
+                              </span>
+                              <span className="text-right">
+                                Impact:{' '}
+                                <b>
+                                  {[
+                                    it.order_item_total_avoided_waste_kg ? `${it.order_item_total_avoided_waste_kg} kg déchets` : null,
+                                    it.order_item_total_avoided_co2_kg ? `${it.order_item_total_avoided_co2_kg} kg CO₂` : null,
+                                  ].filter(Boolean).join(' • ') || '—'}
+                                </b>
+                              </span>
+                            </div>
+                            <div className="mt-1 text-xs text-gray-600">
+                              Avis:{' '}
+                              {it.customer_rating ? (
+                                <>
+                                  {Math.round(it.customer_rating)}/5
+                                  {it.customer_note ? <> — <span className="italic">{it.customer_note}</span></> : null}
+                                </>
+                              ) : (
+                                'Non noté'
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {o.customer_note && (
+                      <div>
+                        <h4 className="font-semibold text-gray-800 text-sm mb-1">Note du client (commande)</h4>
+                        <p className="text-sm text-gray-700">{o.customer_note}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )
+          })
+        )}
+      </div>
+
+      {/* Desktop table */}
+      <div className="bg-white rounded-lg shadow-sm overflow-hidden hidden md:block">
         {filtered.length === 0 ? (
           <p className="text-gray-500 px-6 py-6">Aucune commande trouvée.</p>
         ) : (
@@ -305,7 +463,11 @@ export default function OrdersTab() {
                     const isOpen = expandedCode === o.order_code
                     return (
                       <React.Fragment key={o.order_code}>
-                        <tr className="hover:bg-gray-50">
+                        <tr
+                          className={`transition-colors ${
+                            isOpen ? 'bg-gray-200' : 'hover:bg-gray-100'
+                          }`}
+                        >
                           <td className="px-6 py-3 font-medium text-gray-900">{o.order_code}</td>
                           <td className="px-6 py-3">{fmtDate(o.created_at)}</td>
                           <td className="px-6 py-3 truncate">{addrLine(o.shipping_address_snapshot || o.shipping_address)}</td>

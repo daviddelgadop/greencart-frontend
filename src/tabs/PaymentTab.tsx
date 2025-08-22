@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react' 
 import { toast } from 'react-toastify'
 import { Edit, Trash, Plus } from 'lucide-react'
 import PasswordConfirmModal from '../components/PasswordConfirmModal'
@@ -256,15 +256,15 @@ export default function PaymentTab() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0">
       <div className="bg-white rounded-lg p-6 shadow-sm">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           <h3 className="text-lg font-semibold text-dark-green"></h3>
           {!showForm && !editingId && (
             <button
               type="button"
               onClick={() => setShowForm(true)}
-              className="bg-dark-green text-pale-yellow px-4 py-2 rounded-full font-semibold hover:bg-dark-green/90 transition-colors flex items-center space-x-2"
+              className="w-full sm:w-auto bg-dark-green text-pale-yellow px-4 py-2 rounded-full font-semibold hover:bg-dark-green/90 transition-colors flex items-center justify-center sm:justify-start space-x-2"
             >
               <Plus className="w-4 h-4" />
               <span>Ajouter une méthode</span>
@@ -402,10 +402,10 @@ export default function PaymentTab() {
             </div>
           </div>
 
-          <div className="mt-6 flex items-center gap-3">
+          <div className="mt-6 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             <button
               onClick={handleSave}
-              className="bg-dark-green text-pale-yellow px-6 py-2 rounded-full font-semibold hover:bg-dark-green/90 transition-colors"
+              className="w-full sm:w-auto bg-dark-green text-pale-yellow px-6 py-2 rounded-full font-semibold hover:bg-dark-green/90 transition-colors"
             >
               {editingId ? 'Mettre à jour' : 'Ajouter la méthode'}
             </button>
@@ -414,7 +414,7 @@ export default function PaymentTab() {
                 resetForm()
                 setShowForm(false)
               }}
-              className="px-6 py-2 rounded-full border border-gray-300 text-gray-700 hover:bg-gray-50"
+              className="w-full sm:w-auto px-6 py-2 rounded-full border border-gray-300 text-gray-700 hover:bg-gray-50"
             >
               {editingId ? 'Annuler la modification' : 'Annuler'}
             </button>
@@ -427,66 +427,118 @@ export default function PaymentTab() {
         {methods.length === 0 ? (
           <p className="text-gray-500 px-6 pb-6">Aucune méthode enregistrée.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full table-fixed">
-              <thead className="bg-gray-50 text-xs text-gray-700 uppercase tracking-wider">
-                <tr className="text-center">
-                  <th className="px-3 py-2 font-medium">Type</th>
-                  <th className="px-3 py-2 font-medium">Fournisseur</th>
-                  <th className="px-3 py-2 font-medium">Détails</th>
-                  <th className="px-3 py-2 font-medium">Défaut</th>
-                  <th className="px-3 py-2 font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200 text-xs">
-                {methods.map(m => (
-                  <tr key={m.id} className="text-center hover:bg-gray-50">
-                    <td className="px-2 py-2">
-                      {m.type === 'card' && 'Carte bancaire'}
-                      {m.type === 'paypal' && 'PayPal'}
-                      {m.type === 'rib' && 'RIB (virement)'}
-                    </td>
-                    <td className="px-2 py-2">{m.provider_name}</td>
-                    <td className="px-2 py-2">
-                      {m.type === 'card' && `•••• ${m.last4}`}
-                      {m.type === 'paypal' && m.paypal_email}
-                      {m.type === 'rib' &&
-                        `${m.provider_name || 'Banque inconnue'} •••• ${m.last4 || 'XXXX'}`}
-                    </td>
-                    <td className="px-2 py-2">
-                      {m.is_default ? (
-                        <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
-                          Oui
-                        </span>
-                      ) : (
-                        <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">
-                          Non
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-2 py-2">
-                      <div className="flex justify-center items-center space-x-2">
+          <>
+            {/* Mobile cards */}
+            <div className="md:hidden px-4 pb-4 space-y-3">
+              {methods.map(m => {
+                const typeLabel =
+                  m.type === 'card' ? 'Carte bancaire' :
+                  m.type === 'paypal' ? 'PayPal' : 'RIB (virement)'
+                const details =
+                  m.type === 'card' ? `•••• ${m.last4}` :
+                  m.type === 'paypal' ? (m.paypal_email || '—') :
+                  `${m.provider_name || 'Banque inconnue'} •••• ${m.last4 || 'XXXX'}`
+                return (
+                  <div key={m.id} className="border rounded-lg p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <div className="font-semibold text-dark-green">{typeLabel}</div>
+                          <span className={`px-2 py-0.5 rounded text-[11px] ${m.is_default ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                            {m.is_default ? 'Par défaut' : 'Secondaire'}
+                          </span>
+                        </div>
+                        <div className="text-sm text-gray-700 mt-1 truncate">
+                          {m.provider_name}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-0.5 break-words">
+                          {details}
+                        </div>
+                      </div>
+                      <div className="shrink-0 flex gap-2">
                         <button
                           onClick={() => handleEdit(m)}
-                          className="text-dark-green hover:text-medium-brown"
+                          className="inline-flex items-center justify-center w-9 h-9 rounded-full border text-dark-green hover:bg-gray-50"
                           title="Modifier"
                         >
                           <Edit className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDelete(m.id)}
-                          className="text-red-500 hover:text-red-700"
+                          className="inline-flex items-center justify-center w-9 h-9 rounded-full border text-red-600 hover:bg-red-50"
                           title="Supprimer"
                         >
                           <Trash className="w-4 h-4" />
                         </button>
                       </div>
-                    </td>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full table-fixed">
+                <thead className="bg-gray-50 text-xs text-gray-700 uppercase tracking-wider">
+                  <tr className="text-center">
+                    <th className="px-3 py-2 font-medium">Type</th>
+                    <th className="px-3 py-2 font-medium">Fournisseur</th>
+                    <th className="px-3 py-2 font-medium">Détails</th>
+                    <th className="px-3 py-2 font-medium">Défaut</th>
+                    <th className="px-3 py-2 font-medium">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200 text-xs">
+                  {methods.map(m => (
+                    <tr key={m.id} className="text-center hover:bg-gray-50">
+                      <td className="px-2 py-2">
+                        {m.type === 'card' && 'Carte bancaire'}
+                        {m.type === 'paypal' && 'PayPal'}
+                        {m.type === 'rib' && 'RIB (virement)'}
+                      </td>
+                      <td className="px-2 py-2">{m.provider_name}</td>
+                      <td className="px-2 py-2">
+                        {m.type === 'card' && `•••• ${m.last4}`}
+                        {m.type === 'paypal' && m.paypal_email}
+                        {m.type === 'rib' &&
+                          `${m.provider_name || 'Banque inconnue'} •••• ${m.last4 || 'XXXX'}`}
+                      </td>
+                      <td className="px-2 py-2">
+                        {m.is_default ? (
+                          <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                            Oui
+                          </span>
+                        ) : (
+                          <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">
+                            Non
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-2 py-2">
+                        <div className="flex justify-center items-center space-x-2">
+                          <button
+                            onClick={() => handleEdit(m)}
+                            className="text-dark-green hover:text-medium-brown"
+                            title="Modifier"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(m.id)}
+                            className="text-red-500 hover:text-red-700"
+                            title="Supprimer"
+                          >
+                            <Trash className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 

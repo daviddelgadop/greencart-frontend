@@ -132,7 +132,7 @@ export default function BlogAdminTab() {
     }
   }
 
-    const buildFD = () => {
+  const buildFD = () => {
     const fd = new FormData()
     fd.append('title', form.title)
     fd.append('slug', form.slug)
@@ -144,7 +144,7 @@ export default function BlogAdminTab() {
     fd.append('remove_image', form.remove_image ? '1' : '0')
     if (form.image) fd.append('image', form.image)
     return fd
-    }
+  }
 
   const handleSave = async () => {
     const missing: string[] = []
@@ -161,31 +161,20 @@ export default function BlogAdminTab() {
     }
 
     try {
-    if (editingId) {
+      if (editingId) {
         await http.upload(`/api/blog/admin/posts/${editingId}/`, buildFD(), { method: 'PATCH' })
         toast.success('Article mis à jour.')
-    } else {
+      } else {
         await http.upload('/api/blog/admin/posts/', buildFD())
         toast.success('Article créé.')
-    }
-    resetForm()
-    setShowForm(false)
-    await fetchPosts()
-    } catch (e: any) {
-        const err = e?.response?.data
-        const msg = err ? Object.values(err).flat().join(' | ') : 'Erreur lors de la sauvegarde.'
-        toast.error(msg)
-    }
-
-  }
-
-  const deactivate = async (id: number) => {
-    try {
-      await http.patch(`/api/blog/admin/posts/${id}/`, { is_active: false })
-      toast.success('Article désactivé.')
+      }
+      resetForm()
+      setShowForm(false)
       await fetchPosts()
-    } catch {
-      toast.error('Erreur lors de la désactivation.')
+    } catch (e: any) {
+      const err = e?.response?.data
+      const msg = err ? Object.values(err).flat().join(' | ') : 'Erreur lors de la sauvegarde.'
+      toast.error(msg)
     }
   }
 
@@ -252,8 +241,6 @@ export default function BlogAdminTab() {
     }
   }
 
-  const OrderingIcon = () => <ArrowUpDown className="w-4 h-4 inline ml-1" />
-
   const rows = useMemo(() => posts, [posts])
 
   const removeCurrentImage = () => {
@@ -267,7 +254,8 @@ export default function BlogAdminTab() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0">
+      {/* Toolbar */}
       <div className="bg-white rounded-lg p-6 shadow-sm">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <h3 className="text-lg font-semibold text-dark-green">Articles du blog</h3>
@@ -275,16 +263,17 @@ export default function BlogAdminTab() {
             <button
               type="button"
               onClick={() => setShowForm(true)}
-              className="bg-dark-green text-pale-yellow px-4 py-2 rounded-full font-semibold hover:bg-dark-green/90 transition-colors"
+              className="w-full md:w-auto bg-dark-green text-pale-yellow px-4 py-2 rounded-full font-semibold hover:bg-dark-green/90 transition-colors"
             >
               Nouvel article
             </button>
           )}
         </div>
 
+        {/* Filters */}
         <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
           <div className="flex items-center gap-2">
-            <Search className="w-4 h-4 text-gray-500" />
+            <Search className="w-4 h-4 text-gray-500 shrink-0" />
             <input
               className="form-input w-full"
               placeholder="Rechercher par titre"
@@ -293,7 +282,7 @@ export default function BlogAdminTab() {
             />
           </div>
           <div className="flex items-center gap-2">
-            <Search className="w-4 h-4 text-gray-500" />
+            <Search className="w-4 h-4 text-gray-500 shrink-0" />
             <input
               className="form-input w-full"
               placeholder="Rechercher par catégorie"
@@ -302,7 +291,7 @@ export default function BlogAdminTab() {
             />
           </div>
           <div className="flex items-center gap-2">
-            <Search className="w-4 h-4 text-gray-500" />
+            <Search className="w-4 h-4 text-gray-500 shrink-0" />
             <input
               className="form-input w-full"
               placeholder="Rechercher par auteur"
@@ -313,6 +302,7 @@ export default function BlogAdminTab() {
         </div>
       </div>
 
+      {/* Form */}
       {(showForm || editingId) && (
         <div ref={formBoxRef} className="bg-white rounded-lg p-6 shadow-sm">
           <h3 className="text-lg font-semibold mb-10">
@@ -409,7 +399,10 @@ export default function BlogAdminTab() {
                     />
                     <button
                       type="button"
-                      onClick={removeCurrentImage}
+                      onClick={() => {
+                        setForm(f => ({ ...f, remove_image: true, image: null, current_image_url: '' }))
+                        if (imgRef.current) imgRef.current.value = ''
+                      }}
                       className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center"
                       title="Supprimer l’image"
                     >
@@ -424,11 +417,11 @@ export default function BlogAdminTab() {
             </div>
           </div>
 
-          <div className="mt-6 flex items-center gap-3">
+          <div className="mt-6 flex flex-col sm:flex-row gap-3">
             <button
               type="button"
               onClick={handleSave}
-              className="bg-dark-green text-pale-yellow px-6 py-2 rounded-full font-semibold hover:bg-dark-green/90 transition-colors"
+              className="w-full sm:w-auto bg-dark-green text-pale-yellow px-6 py-2 rounded-full font-semibold hover:bg-dark-green/90 transition-colors"
             >
               {editingId ? 'Mettre à jour l’article' : 'Sauvegarder l’article'}
             </button>
@@ -438,7 +431,7 @@ export default function BlogAdminTab() {
                 resetForm()
                 setShowForm(false)
               }}
-              className="px-6 py-2 rounded-full border border-gray-300 text-gray-700 hover:bg-gray-50"
+              className="w-full sm:w-auto px-6 py-2 rounded-full border border-gray-300 text-gray-700 hover:bg-gray-50"
             >
               {editingId ? 'Annuler la modification' : 'Annuler'}
             </button>
@@ -446,102 +439,159 @@ export default function BlogAdminTab() {
         </div>
       )}
 
+      {/* List */}
       <div className="bg-white rounded-lg shadow-sm overflow-hidden">
         {loading ? (
           <p className="text-gray-500 px-6 py-6">Chargement…</p>
         ) : rows.length === 0 ? (
           <p className="text-gray-500 px-6 py-6">Aucun article enregistré.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full table-fixed">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th
-                    className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase cursor-pointer"
-                    onClick={() => toggleSort('title')}
-                  >
-                    Titre <ArrowUpDown className="w-4 h-4 inline ml-1" />
-                  </th>
-                  <th
-                    className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase cursor-pointer"
-                    onClick={() => toggleSort('category__name')}
-                  >
-                    Catégorie <ArrowUpDown className="w-4 h-4 inline ml-1" />
-                  </th>
-                  <th
-                    className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase cursor-pointer"
-                    onClick={() => toggleSort('author__public_display_name')}
-                  >
-                    Auteur <ArrowUpDown className="w-4 h-4 inline ml-1" />
-                  </th>
-                  <th
-                    className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase cursor-pointer"
-                    onClick={() => toggleSort('published_at')}
-                  >
-                    Date de publication <ArrowUpDown className="w-4 h-4 inline ml-1" />
-                  </th>
-                  <th
-                    className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase cursor-pointer"
-                    onClick={() => toggleSort('read_time_min')}
-                  >
-                    Temps de lecture <ArrowUpDown className="w-4 h-4 inline ml-1" />
-                  </th>
-                  <th
-                    className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase cursor-pointer"
-                    onClick={() => toggleSort('pinned')}
-                  >
-                    En vedette <ArrowUpDown className="w-4 h-4 inline ml-1" />
-                  </th>
-                  <th
-                    className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase cursor-pointer"
-                    onClick={() => toggleSort('status')}
-                  >
-                    Statut <ArrowUpDown className="w-4 h-4 inline ml-1" />
-                  </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200 text-sm">
-                {rows.map(p => (
-                  <tr key={p.id}>
-                    <td className="px-4 py-3 font-medium text-gray-900 break-words">
-                        {(p.title || '—')
-                          .split(' ')
-                          .reduce((acc, word) => {
-                            if ((acc + ' ' + word).trim().length <= 20) {
-                              return (acc + ' ' + word).trim()
-                            }
-                            return acc
-                          }, '')}...
-                    </td>
-                    <td className="px-1 py-3">{p.category?.name || '—'}</td>
-                    <td className="px-4 py-3">{p.author_name || '—'}</td>
-                    <td className="px-4 py-3">{p.published_at ? new Date(p.published_at).toLocaleDateString() : '—'}</td>
-                    <td className="px-4 py-3 text-center">{p.read_time_min ?? '—'}</td>
-                    <td className="px-4 py-3 text-center">
-                      {p.pinned ? <Star className="w-4 h-4 inline" /> : '—'}
-                    </td>
-                    <td className="px-4 py-3">
-                      {p.status === 'draft' ? 'Brouillon' : p.status === 'scheduled' ? 'Planifié' : p.status === 'published' ? 'Publié' : 'Archivé'}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <div className="flex justify-center space-x-2">
-                        <button onClick={() => edit(p)} className="text-dark-green hover:text-medium-brown">
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button
-                        onClick={() => handleDelete(p.id)}
-                        className="text-red-500 hover:text-red-700"
-                        >
-                        <Trash className="w-4 h-4" />
-                        </button>
+          <>
+            {/* Mobile cards */}
+            <div className="md:hidden px-4 pb-4 space-y-3">
+              {rows.map(p => (
+                <div key={p.id} className="border rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-20 h-20 shrink-0 bg-gray-100 border rounded overflow-hidden flex items-center justify-center">
+                      {p.image ? (
+                        <img src={p.image} alt={p.title} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-gray-400 text-xs">—</span>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-dark-green truncate">{p.title}</div>
+                      <div className="text-xs text-gray-500">{p.category?.name || '—'}</div>
+                      <div className="text-xs text-gray-500">{p.author_name || '—'}</div>
+                      <div className="text-xs text-gray-500">
+                        {p.published_at ? new Date(p.published_at).toLocaleDateString() : '—'}
                       </div>
-                    </td>
+                      <div className="text-xs text-gray-500">
+                        {p.status === 'draft'
+                          ? 'Brouillon'
+                          : p.status === 'scheduled'
+                          ? 'Planifié'
+                          : p.status === 'published'
+                          ? 'Publié'
+                          : 'Archivé'}
+                      </div>
+                    </div>
+                    <div className="shrink-0 flex flex-col gap-2">
+                      <button
+                        onClick={() => edit(p)}
+                        className="inline-flex items-center justify-center w-9 h-9 rounded-full border text-dark-green hover:bg-gray-50"
+                        title="Modifier"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(p.id)}
+                        className="inline-flex items-center justify-center w-9 h-9 rounded-full border text-red-600 hover:bg-gray-50"
+                        title="Supprimer"
+                      >
+                        <Trash className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full table-fixed">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th
+                      className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase cursor-pointer select-none"
+                      onClick={() => toggleSort('title')}
+                      title="Trier par titre"
+                    >
+                      Titre <ArrowUpDown className="w-4 h-4 inline ml-1" />
+                    </th>
+                    <th
+                      className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase cursor-pointer select-none"
+                      onClick={() => toggleSort('category__name')}
+                      title="Trier par catégorie"
+                    >
+                      Catégorie <ArrowUpDown className="w-4 h-4 inline ml-1" />
+                    </th>
+                    <th
+                      className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase cursor-pointer select-none"
+                      onClick={() => toggleSort('author__public_display_name')}
+                      title="Trier par auteur"
+                    >
+                      Auteur <ArrowUpDown className="w-4 h-4 inline ml-1" />
+                    </th>
+                    <th
+                      className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase cursor-pointer select-none"
+                      onClick={() => toggleSort('published_at')}
+                      title="Trier par date de publication"
+                    >
+                      Date de publication <ArrowUpDown className="w-4 h-4 inline ml-1" />
+                    </th>
+                    <th
+                      className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase cursor-pointer select-none"
+                      onClick={() => toggleSort('read_time_min')}
+                      title="Trier par temps de lecture"
+                    >
+                      Temps de lecture <ArrowUpDown className="w-4 h-4 inline ml-1" />
+                    </th>
+                    <th
+                      className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase cursor-pointer select-none"
+                      onClick={() => toggleSort('pinned')}
+                      title="Trier par mise en avant"
+                    >
+                      En vedette <ArrowUpDown className="w-4 h-4 inline ml-1" />
+                    </th>
+                    <th
+                      className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase cursor-pointer select-none"
+                      onClick={() => toggleSort('status')}
+                      title="Trier par statut"
+                    >
+                      Statut <ArrowUpDown className="w-4 h-4 inline ml-1" />
+                    </th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200 text-sm">
+                  {rows.map(p => (
+                    <tr key={p.id}>
+                      <td className="px-4 py-3 font-medium text-gray-900 break-words">
+                        {(() => {
+                          const words = (p.title || '—').split(' ')
+                          let acc = ''
+                          for (const w of words) {
+                            if ((acc + ' ' + w).trim().length <= 50) acc = (acc + ' ' + w).trim()
+                            else break
+                          }
+                          return acc + (acc.length < (p.title || '').length ? '…' : '')
+                        })()}
+                      </td>
+                      <td className="px-1 py-3">{p.category?.name || '—'}</td>
+                      <td className="px-4 py-3">{p.author_name || '—'}</td>
+                      <td className="px-4 py-3">{p.published_at ? new Date(p.published_at).toLocaleDateString() : '—'}</td>
+                      <td className="px-4 py-3 text-center">{p.read_time_min ?? '—'}</td>
+                      <td className="px-4 py-3 text-center">{p.pinned ? <Star className="w-4 h-4 inline" /> : '—'}</td>
+                      <td className="px-4 py-3">
+                        {p.status === 'draft' ? 'Brouillon' : p.status === 'scheduled' ? 'Planifié' : p.status === 'published' ? 'Publié' : 'Archivé'}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <div className="flex justify-center space-x-2">
+                          <button onClick={() => edit(p)} className="text-dark-green hover:text-medium-brown" title="Modifier">
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button onClick={() => handleDelete(p.id)} className="text-red-500 hover:text-red-700" title="Supprimer">
+                            <Trash className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 

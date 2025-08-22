@@ -497,10 +497,16 @@ export default function BundleDetail() {
                   disabled={!canBuy}
                   aria-disabled={!canBuy}
                   title={canBuy ? 'Ajouter au panier' : 'Indisponible – rupture de stock'}
-                  className={`flex-1 py-3 rounded-full ${canBuy ? 'bg-dark-green text-white hover:bg-dark-green/90' : 'bg-gray-300 text-gray-600 cursor-not-allowed'}`}
+                  className={`flex items-center space-x-2 rounded-full font-semibold text-sm px-2.5 py-1.5 shadow-sm transition-colors ${
+                    canBuy
+                      ? 'bg-dark-green text-pale-yellow hover:bg-dark-green/90'
+                      : 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                  }`}
                 >
-                  <ShoppingCart className="inline mr-2" /> Ajouter au panier
+                  <ShoppingCart className="w-5 h-5" />
+                  <span>Ajouter au panier</span>
                 </button>
+
 
                 {accessToken && (
                   <button

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Search, ShoppingCart, Menu, X, User } from 'lucide-react'
 import { useCart } from '../../contexts/CartContext'
@@ -20,6 +20,14 @@ export default function Header() {
       setIsMenuOpen(false)
     }
   }
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsMenuOpen(false)
+    }
+    if (isMenuOpen) document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [isMenuOpen])
 
   const totalItems = state.items.reduce((sum, item) => sum + item.quantity, 0)
 
@@ -105,8 +113,16 @@ export default function Header() {
         </div>
       </div>
 
-      {isMenuOpen && (
-        <div className="md:hidden bg-white border-t">
+    {isMenuOpen && (
+      <div className="md:hidden fixed inset-x-0 top-16 bottom-0 z-40 pointer-events-none">
+        {/* Scrim */}
+        <div
+          className="absolute inset-0 bg-black/10 pointer-events-auto"
+          onClick={() => setIsMenuOpen(false)}
+          aria-hidden="true"
+        />
+        {/* Panel */}
+        <div className="absolute left-0 right-0 bg-white border-t shadow-md max-h-full overflow-y-auto pointer-events-auto">
           <div className="px-4 py-4 space-y-4">
             <form onSubmit={handleSearch}>
               <div className="relative">
@@ -122,15 +138,48 @@ export default function Header() {
             </form>
 
             <nav className="flex flex-col space-y-2">
-              <Link to="/about" onClick={() => setIsMenuOpen(false)} className="text-gray-700 hover:text-dark-green transition-colors py-2">À propos</Link>
-              <Link to="/shop" onClick={() => setIsMenuOpen(false)} className="text-gray-700 hover:text-dark-green transition-colors py-2">Boutique</Link>
-              <Link to="/producers" onClick={() => setIsMenuOpen(false)} className="text-gray-700 hover:text-dark-green transition-colors py-2">Producteurs</Link>
-              <Link to="/blog" onClick={() => setIsMenuOpen(false)} className="text-gray-700 hover:text-dark-green transition-colors py-2">Blog</Link>
-              <Link to="/contact" onClick={() => setIsMenuOpen(false)} className="text-gray-700 hover:text-dark-green transition-colors py-2">Contact</Link>
+              <Link
+                to="/about"
+                onClick={() => setIsMenuOpen(false)}
+                className="text-gray-700 hover:text-dark-green transition-colors py-2"
+              >
+                À propos
+              </Link>
+              <Link
+                to="/shop"
+                onClick={() => setIsMenuOpen(false)}
+                className="text-gray-700 hover:text-dark-green transition-colors py-2"
+              >
+                Boutique
+              </Link>
+              <Link
+                to="/producers"
+                onClick={() => setIsMenuOpen(false)}
+                className="text-gray-700 hover:text-dark-green transition-colors py-2"
+              >
+                Producteurs
+              </Link>
+              <Link
+                to="/blog"
+                onClick={() => setIsMenuOpen(false)}
+                className="text-gray-700 hover:text-dark-green transition-colors py-2"
+              >
+                Blog
+              </Link>
+              <Link
+                to="/contact"
+                onClick={() => setIsMenuOpen(false)}
+                className="text-gray-700 hover:text-dark-green transition-colors py-2"
+              >
+                Contact
+              </Link>
             </nav>
           </div>
         </div>
-      )}
+      </div>
+    )}
+
+
     </header>
   )
 }

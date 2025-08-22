@@ -9,7 +9,6 @@ import { http } from '../lib/api'
 const DETAIL_BASE = "/producers";
 const PAGE_SIZE = 12;
 
-/** Types */
 type RegionLite = { code: string; name: string };
 type DepartmentLite = { code: string; name: string; region?: RegionLite };
 
@@ -80,16 +79,19 @@ type SortKeyCommerce =
   | "rating_asc";
 type ViewMode = "producer" | "commerce";
 
-/** Utils */
+
+
 function producerName(p: Producer) {
   const disp = (p.public_display_name || "").trim();
   if (disp) return disp;
   return `${p.first_name || ""} ${p.last_name || ""}`.trim() || "Producteur";
 }
+
 function normalizeCerts(arr: Array<string | Certification> | undefined): Certification[] {
   if (!Array.isArray(arr)) return [];
   return arr.map((c) => (typeof c === "string" ? { code: c, label: c } : c));
 }
+
 function formatCityName(raw?: string | null) {
   if (!raw) return "";
   const s = String(raw).toLowerCase().replace(/\s+/g, " ").trim();
@@ -103,15 +105,16 @@ function formatCityName(raw?: string | null) {
     })
     .join(" ");
 }
+
 function joinedText(iso?: string | null) {
   if (!iso) return "Membre récent";
   const d = new Date(iso);
   if (isNaN(d.getTime())) return "Membre récent";
   return `Membre depuis ${d.toLocaleDateString("fr-FR", { year: "numeric", month: "long" })}`;
 }
+
 function uniq<T>(arr: T[]) { return Array.from(new Set(arr)); }
 
-/** Region/Department helpers */
 function companyRegionName(c?: Company | null): string {
   if (!c) return "";
   return (
@@ -121,6 +124,7 @@ function companyRegionName(c?: Company | null): string {
     ""
   );
 }
+
 function companyDepartmentName(c?: Company | null): string {
   if (!c) return "";
   return (
@@ -130,17 +134,19 @@ function companyDepartmentName(c?: Company | null): string {
     ""
   );
 }
+
 function producerRegionName(p: Producer): string {
   return p.main_region_data?.name || (p.commerces || []).map(companyRegionName).find(Boolean) || "";
 }
+
 function producerDepartmentName(p: Producer): string {
   return p.main_department_data?.name || (p.commerces || []).map(companyDepartmentName).find(Boolean) || "";
 }
+
 function producerCityName(p: Producer): string {
   return formatCityName(p.main_address?.city?.name) || formatCityName(p.commerces?.[0]?.address?.city?.name || "");
 }
 
-/** Stars */
 function StarsDisplay({ value = 0, size = 16 }: { value?: number; size?: number }) {
   const v = Math.max(0, Math.min(5, Number(value) || 0));
   const pct = (v / 5) * 100;
@@ -159,17 +165,100 @@ function StarsDisplay({ value = 0, size = 16 }: { value?: number; size?: number 
   );
 }
 
-/** Flatten commerce rows */
 type CommerceRow = {
-  key: string;          // `${producer.id}-${company.id}`
+  key: string;
   company: Company;
   producer: Producer;
 };
+
+function MultiSelect({
+  options,
+  value,
+  onChange,
+  placeholder = 'Tous les départements',
+}: {
+  options: { value: string; label: string }[]
+  value: string[]
+  onChange: (vals: string[]) => void
+  placeholder?: string
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (!ref.current) return;
+      if (!ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const toggle = (v: string) => {
+    if (value.includes(v)) onChange(value.filter(x => x !== v));
+    else onChange([...value, v]);
+  };
+
+  const buttonText =
+    value.length === 0
+      ? placeholder
+      : value.length === 1
+      ? options.find(o => o.value === value[0])?.label || placeholder
+      : `${options.find(o => o.value === value[0])?.label || ''} +${value.length - 1}`;
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full bg-white rounded-xl border px-3 py-2.5 shadow-sm flex items-center justify-between text-left"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        <span className="truncate">{buttonText}</span>
+        <ChevronRight className={`w-4 h-4 transition-transform ${open ? 'rotate-90' : ''}`} />
+      </button>
+
+      {open && (
+        <div className="absolute z-20 mt-2 w-full max-h-64 overflow-auto bg-white border rounded-xl shadow">
+          <ul className="py-1" role="listbox" aria-multiselectable="true">
+            {options.map(opt => (
+              <li key={opt.value}>
+                <label className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="rounded"
+                    checked={value.includes(opt.value)}
+                    onChange={() => toggle(opt.value)}
+                  />
+                  <span className="truncate">{opt.label}</span>
+                </label>
+              </li>
+            ))}
+          </ul>
+          {value.length > 0 && (
+            <div className="border-t p-2 text-right">
+              <button
+                className="text-sm text-dark-green hover:underline"
+                onClick={() => onChange([])}
+              >
+                Effacer la sélection
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 export default function ProducersCatalog() {
   const [searchParams, setSearchParams] = useSearchParams();
   const viewParam = (searchParams.get("view") as ViewMode) || "producer";
   const [view, setView] = useState<ViewMode>(viewParam);
+
+  const listTopRef = React.useRef<HTMLDivElement>(null)
 
   const [loading, setLoading] = useState(true);
   const [producers, setProducers] = useState<Producer[]>([]);
@@ -185,29 +274,28 @@ export default function ProducersCatalog() {
   const [sort, setSort] = useState<SortKey>("recent");
   const [sortCommerce, setSortCommerce] = useState<SortKeyCommerce>("name");
   const [region, setRegion] = useState<string>("");
-  const [department, setDepartment] = useState<string>("");
+  const [departmentsSel, setDepartmentsSel] = useState<string[]>([]);
   const [page, setPage] = useState(1);
 
   useEffect(() => {
-    let alive = true
-    ;(async () => {
-      setLoading(true)
-      setError(null)
+    let alive = true;
+    (async () => {
+      setLoading(true);
+      setError(null);
       try {
-        const data = await http.get<any[]>('/api/public/producers/')
-        if (!alive) return
-        setProducers(Array.isArray(data) ? data : [])
+        const data = await http.get<any[]>('/api/public/producers/');
+        if (!alive) return;
+        setProducers(Array.isArray(data) ? data : []);
       } catch {
-        setError("Impossible de charger les producteurs.")
+        setError("Impossible de charger les producteurs.");
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    })()
+    })();
     return () => {
-      alive = false
-    }
-  }, [])
-
+      alive = false;
+    };
+  }, []);
 
   const producerRegions = useMemo(() => {
     const all = producers.map(producerRegionName).filter(Boolean);
@@ -251,7 +339,6 @@ export default function ProducersCatalog() {
     return rows;
   }, [producers]);
 
-  /** Producer view */
   const filteredProducers = useMemo(() => {
     let arr = [...producers];
 
@@ -269,7 +356,11 @@ export default function ProducersCatalog() {
     }
 
     if (region) arr = arr.filter((p) => producerRegionName(p) === region);
-    if (department) arr = arr.filter((p) => producerDepartmentName(p) === department);
+
+    if (departmentsSel.length > 0) {
+      const set = new Set(departmentsSel);
+      arr = arr.filter((p) => set.has(producerDepartmentName(p)));
+    }
 
     switch (sort) {
       case "name":
@@ -320,9 +411,8 @@ export default function ProducersCatalog() {
         break;
     }
     return arr;
-  }, [producers, query, sort, region, department]);
+  }, [producers, query, sort, region, departmentsSel]);
 
-  /** Commerce view */
   const filteredCommerces = useMemo(() => {
     let arr = [...allCommercesRows];
 
@@ -339,7 +429,11 @@ export default function ProducersCatalog() {
     }
 
     if (region) arr = arr.filter(({ company }) => companyRegionName(company) === region);
-    if (department) arr = arr.filter(({ company }) => companyDepartmentName(company) === department);
+
+    if (departmentsSel.length > 0) {
+      const set = new Set(departmentsSel);
+      arr = arr.filter(({ company }) => set.has(companyDepartmentName(company)));
+    }
 
     switch (sortCommerce) {
       case "name":
@@ -391,18 +485,48 @@ export default function ProducersCatalog() {
     }
 
     return arr;
-  }, [allCommercesRows, query, sortCommerce, region, department]);
+  }, [allCommercesRows, query, sortCommerce, region, departmentsSel]);
 
   useEffect(() => {
     const next = new URLSearchParams(searchParams);
     next.set("view", view);
     setSearchParams(next, { replace: true });
     setRegion("");
-    setDepartment("");
+    setDepartmentsSel([]);
     setPage(1);
   }, [view]);
 
-  useEffect(() => { setPage(1); }, [query, sort, sortCommerce, region, department]);
+  useEffect(() => { setPage(1); }, [query, sort, sortCommerce, region, departmentsSel]);
+
+
+  const departmentsForView = useMemo(() => {
+    if (!region) {
+      return (view === "producer" ? producerDepartments : commerceDepartments);
+    }
+
+    if (view === "producer") {
+      const arr = producers
+        .filter(p => producerRegionName(p) === region)
+        .map(p => producerDepartmentName(p))
+        .filter(Boolean) as string[];
+      return uniq(arr).sort((a, b) => a.localeCompare(b, "fr", { sensitivity: "base" }));
+    } else {
+      const arr = allCommercesRows
+        .filter(row => companyRegionName(row.company) === region)
+        .map(row => companyDepartmentName(row.company))
+        .filter(Boolean) as string[];
+      return uniq(arr).sort((a, b) => a.localeCompare(b, "fr", { sensitivity: "base" }));
+    }
+  }, [region, view, producers, allCommercesRows, producerDepartments, commerceDepartments]);
+
+
+  useEffect(() => {
+    setDepartmentsSel(prev => prev.filter(d => departmentsForView.includes(d)));
+  }, [region, departmentsForView]);
+
+  useEffect(() => {
+    listTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+  }, [page])
 
   const totalProducers = filteredProducers.length;
   const totalCommerces = filteredCommerces.length;
@@ -441,6 +565,7 @@ export default function ProducersCatalog() {
     );
   }
 
+
   return (
     <div className="min-h-screen bg-pale-yellow/20 py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -458,7 +583,7 @@ export default function ProducersCatalog() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-4 divide-x rounded-2xl bg-[#F7FAF4] text-dark-green">
+              <div className="grid grid-cols-2 sm:grid-cols-4 overflow-hidden rounded-2xl bg-[#F7FAF4] text-dark-green divide-y sm:divide-y-0 sm:divide-x">
                 <div className="px-5 py-3 text-center">
                   <div className="text-2xl font-bold">{stats.producers}</div>
                   <div className="text-xs uppercase tracking-wide">Producteurs</div>
@@ -502,10 +627,14 @@ export default function ProducersCatalog() {
             </div>
 
             <div className="mt-6 flex flex-col gap-4">
-              <div className="flex overflow-x-auto gap-2 py-1">
+              <div className="flex flex-wrap gap-2 py-1">
                 <button
                   onClick={() => setRegion("")}
-                  className={`px-3 py-1.5 rounded-full text-sm border ${region === "" ? "bg-dark-green text-pale-yellow border-dark-green" : "bg-white text-dark-green hover:bg-dark-green/10 border-gray-200"}`}
+                  className={`px-3 py-1.5 rounded-full text-sm border ${
+                    region === ""
+                      ? "bg-dark-green text-pale-yellow border-dark-green"
+                      : "bg-white text-dark-green hover:bg-dark-green/10 border-gray-200"
+                  }`}
                 >
                   Toutes les régions
                 </button>
@@ -513,7 +642,11 @@ export default function ProducersCatalog() {
                   <button
                     key={r}
                     onClick={() => setRegion(r)}
-                    className={`px-3 py-1.5 rounded-full text-sm border whitespace-nowrap ${region === r ? "bg-dark-green text-pale-yellow border-dark-green" : "bg-white text-dark-green hover:bg-dark-green/10 border-gray-200"}`}
+                    className={`px-3 py-1.5 rounded-full text-sm border ${
+                      region === r
+                        ? "bg-dark-green text-pale-yellow border-dark-green"
+                        : "bg-white text-dark-green hover:bg-dark-green/10 border-gray-200"
+                    }`}
                     title={r}
                   >
                     {r}
@@ -537,17 +670,12 @@ export default function ProducersCatalog() {
               <div className="flex flex-col sm:flex-row gap-3">
                 <div className="sm:w-56">
                   <label className="block text-xs text-gray-500 mb-1">Département</label>
-                  <select
-                    value={department}
-                    onChange={(e) => setDepartment(e.target.value)}
-                    className="w-full bg-white rounded-xl border px-3 py-2.5 shadow-sm"
-                    aria-label="Filtrer par département"
-                  >
-                    <option value="">Tous les départements</option>
-                    {departments.map((d) => (
-                      <option key={d} value={d}>{d}</option>
-                    ))}
-                  </select>
+                  <MultiSelect
+                    options={departmentsForView.map(d => ({ value: d, label: d }))}
+                    value={departmentsSel}
+                    onChange={setDepartmentsSel}
+                    placeholder="Tous les départements"
+                  />
                 </div>
 
                 {view === "producer" ? (
@@ -602,6 +730,8 @@ export default function ProducersCatalog() {
             </>
           )}
         </p>
+
+        <div ref={listTopRef}></div>
 
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -891,7 +1021,6 @@ export default function ProducersCatalog() {
   );
 }
 
-/** Skeleton card */
 function ProducerCardSkeleton() {
   return (
     <div className="bg-white rounded-2xl p-6 shadow-sm ring-1 ring-black/5 animate-pulse">

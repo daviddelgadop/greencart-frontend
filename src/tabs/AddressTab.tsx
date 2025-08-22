@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react' 
 import { toast } from 'react-toastify'
 import { Edit, Trash, Plus } from 'lucide-react'
 import PasswordConfirmModal from '../components/PasswordConfirmModal'
@@ -289,7 +289,7 @@ export default function AddressTab() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0">
       <div className="bg-white rounded-lg p-6 shadow-sm">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold text-dark-green"></h3>
@@ -457,106 +457,166 @@ export default function AddressTab() {
       )}
 
       <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-
-        <div className="flex justify-between items-center px-6 pb-4">
+        <div className="flex flex-col sm:flex-row justify-between items-stretch gap-3 px-6 pb-4">
           <input
             type="text"
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             placeholder="Rechercher par titre, ville ou pays..."
-            className="form-input w-full max-w-sm"
+            className="form-input w-full min-w-0 sm:max-w-sm"
           />
         </div>
 
-        {filteredAndSortedAddresses.length === 0 ? (
-          <p className="text-gray-500 px-6 pb-6">Aucune adresse enregistrée.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <div className="max-w-6xl mx-auto">
-              <table className="w-full table-fixed">
-                <thead className="bg-gray-50 text-xs text-gray-700 uppercase tracking-wider">
-                  <tr className="text-center">
-                    <th
-                      onClick={() => handleSort('title')}
-                      title="Cliquer pour trier par titre"
-                      className={`px-3 py-2 font-medium cursor-pointer select-none ${
-                        sortField === 'title' ? 'text-dark-green' : 'text-gray-700'
-                      }`}
-                    >
-                      Titre {sortField === 'title' ? (sortDirection === 'asc' ? '▲' : '▼') : <span className="text-gray-300">▲▼</span>}
-                    </th>
-                    <th className="px-3 py-2 font-medium">Adresse</th>
-                    <th
-                      onClick={() => handleSort('city')}
-                      title="Cliquer pour trier par ville"
-                      className={`px-3 py-2 font-medium cursor-pointer select-none ${
-                        sortField === 'city' ? 'text-dark-green' : 'text-gray-700'
-                      }`}
-                    >
-                      Ville {sortField === 'city' ? (sortDirection === 'asc' ? '▲' : '▼') : <span className="text-gray-300">▲▼</span>}
-                    </th>
-                    <th
-                      onClick={() => handleSort('country_name')}
-                      title="Cliquer pour trier par pays"
-                      className={`px-3 py-2 font-medium cursor-pointer select-none ${
-                        sortField === 'country_name' ? 'text-dark-green' : 'text-gray-700'
-                      }`}
-                    >
-                      Pays {sortField === 'country_name' ? (sortDirection === 'asc' ? '▲' : '▼') : <span className="text-gray-300">▲▼</span>}
-                    </th>
-                    <th className="px-3 py-2 font-medium">Complément</th>
-                    <th className="px-3 py-2 font-medium text-center">Principale</th>
-                    <th className="px-3 py-2 font-medium text-center">Actions</th>
-                  </tr>
-                </thead>
+        {/* Mobile cards */}
+        <div className="md:hidden px-4 pb-4 space-y-3">
+          {filteredAndSortedAddresses.length === 0 ? (
+            <p className="text-gray-500 px-2">Aucune adresse enregistrée.</p>
+          ) : (
+            filteredAndSortedAddresses.map(addr => (
+              <div key={addr.id} className="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="font-semibold truncate">{addr.title}</div>
+                  {addr.is_primary ? (
+                    <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800">Principale</span>
+                  ) : (
+                    <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-800">Secondaire</span>
+                  )}
+                </div>
 
-                <tbody className="bg-white divide-y divide-gray-200 text-xs">
-                  {filteredAndSortedAddresses.map(addr => (
-                    <tr key={addr.id} className="hover:bg-gray-50 text-center">
-                      <td className="px-2 py-2 font-medium text-gray-900">{addr.title}</td>
-                      <td className="px-2 py-2">
-                        {addr.street_number} {addr.street_name}
-                      </td>
-                      <td className="px-2 py-2">
-                        {addr.city ? `${addr.city.name} (${addr.city.postal_code})` : 'Ville inconnue'}
-                      </td>
-                      <td className="px-2 py-2">
-                        {addr.city ? `${addr.city.country_name}` : 'Pays inconnu'}
-                      </td>
-                      <td className="px-2 py-2 text-gray-600">{addr.complement || '—'}</td>
-                      <td className="px-2 py-2 text-center">
-                        {addr.is_primary ? (
-                          <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">Oui</span>
-                        ) : (
-                          <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">Non</span>
-                        )}
-                      </td>
-                      <td className="px-2 py-2 text-center">
-                        <div className="flex justify-center items-center space-x-2">
-                          <button
-                            onClick={() => handleEdit(addr)}
-                            title="Modifier l'adresse"
-                            className="text-dark-green hover:text-medium-brown"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(addr.id)}
-                            title="Supprimer l'adresse"
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            <Trash className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
+                <div className="mt-2 text-sm space-y-1">
+                  <div className="text-gray-900 break-words">
+                    {addr.street_number} {addr.street_name}
+                  </div>
+                  <div className="text-gray-700">
+                    {addr.city ? `${addr.city.name} (${addr.city.postal_code})` : 'Ville inconnue'}
+                  </div>
+                  <div className="text-gray-700">
+                    {addr.city ? addr.city.country_name : 'Pays inconnu'}
+                  </div>
+                  <div className="text-gray-600">{addr.complement || '—'}</div>
+                </div>
+
+                <div className="mt-3 flex items-center gap-4">
+                  <button
+                    onClick={() => handleEdit(addr)}
+                    title="Modifier l'adresse"
+                    className="text-dark-green hover:text-medium-brown"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(addr.id)}
+                    title="Supprimer l'adresse"
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    <Trash className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Desktop table */}
+        <div className="hidden md:block">
+          {filteredAndSortedAddresses.length === 0 ? (
+            <p className="text-gray-500 px-6 pb-6">Aucune adresse enregistrée.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <div className="max-w-6xl mx-auto">
+                <table className="w-full table-fixed">
+                  <colgroup>
+                    <col className="w-[16%]" />
+                    <col className="w-[28%]" />
+                    <col className="w-[18%]" />
+                    <col className="w-[18%]" />
+                    <col className="w-[14%]" />
+                    <col className="w-[8%]" />
+                    <col className="w-[8%]" />
+                  </colgroup>
+
+                  <thead className="bg-gray-50 text-xs text-gray-700 uppercase tracking-wider">
+                    <tr className="text-center">
+                      <th
+                        onClick={() => handleSort('title')}
+                        title="Cliquer pour trier par titre"
+                        className={`px-3 py-2 font-medium cursor-pointer select-none ${sortField === 'title' ? 'text-dark-green' : 'text-gray-700'}`}
+                      >
+                        Titre {sortField === 'title' ? (sortDirection === 'asc' ? '▲' : '▼') : <span className="text-gray-300">▲▼</span>}
+                      </th>
+                      <th className="px-3 py-2 font-medium">Adresse</th>
+                      <th
+                        onClick={() => handleSort('city')}
+                        title="Cliquer pour trier par ville"
+                        className={`px-3 py-2 font-medium cursor-pointer select-none ${sortField === 'city' ? 'text-dark-green' : 'text-gray-700'}`}
+                      >
+                        Ville {sortField === 'city' ? (sortDirection === 'asc' ? '▲' : '▼') : <span className="text-gray-300">▲▼</span>}
+                      </th>
+                      <th
+                        onClick={() => handleSort('country_name')}
+                        title="Cliquer pour trier par pays"
+                        className={`px-3 py-2 font-medium cursor-pointer select-none ${sortField === 'country_name' ? 'text-dark-green' : 'text-gray-700'}`}
+                      >
+                        Pays {sortField === 'country_name' ? (sortDirection === 'asc' ? '▲' : '▼') : <span className="text-gray-300">▲▼</span>}
+                      </th>
+                      <th className="px-3 py-2 font-medium">Complément</th>
+                      <th className="px-3 py-2 font-medium text-center">Principale</th>
+                      <th className="px-3 py-2 font-medium text-center">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
+                  </thead>
 
-              </table>
+                  <tbody className="bg-white divide-y divide-gray-200 text-xs">
+                    {filteredAndSortedAddresses.map(addr => (
+                      <tr key={addr.id} className="hover:bg-gray-50 text-center">
+                        <td className="px-2 py-2 font-medium text-gray-900 truncate" title={addr.title}>
+                          {addr.title}
+                        </td>
+                        <td className="px-2 py-2 truncate" title={`${addr.street_number} ${addr.street_name}`}>
+                          {addr.street_number} {addr.street_name}
+                        </td>
+                        <td className="px-2 py-2 truncate" title={addr.city ? `${addr.city.name} (${addr.city.postal_code})` : 'Ville inconnue'}>
+                          {addr.city ? `${addr.city.name} (${addr.city.postal_code})` : 'Ville inconnue'}
+                        </td>
+                        <td className="px-2 py-2 truncate" title={addr.city ? addr.city.country_name : 'Pays inconnu'}>
+                          {addr.city ? `${addr.city.country_name}` : 'Pays inconnu'}
+                        </td>
+                        <td className="px-2 py-2 text-gray-600 truncate" title={addr.complement || '—'}>
+                          {addr.complement || '—'}
+                        </td>
+                        <td className="px-2 py-2 text-center">
+                          {addr.is_primary ? (
+                            <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">Oui</span>
+                          ) : (
+                            <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">Non</span>
+                          )}
+                        </td>
+                        <td className="px-2 py-2 text-center">
+                          <div className="flex justify-center items-center space-x-2">
+                            <button
+                              onClick={() => handleEdit(addr)}
+                              title="Modifier l'adresse"
+                              className="text-dark-green hover:text-medium-brown"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(addr.id)}
+                              title="Supprimer l'adresse"
+                              className="text-red-500 hover:text-red-700"
+                            >
+                              <Trash className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+
+                </table>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       <PasswordConfirmModal

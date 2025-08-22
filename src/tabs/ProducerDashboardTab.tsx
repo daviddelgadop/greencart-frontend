@@ -338,7 +338,8 @@ export default function ProducerDashboardTab() {
         )}
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="ml-2 flex items-center gap-2">
+        <span className="text-xs text-gray-600">Période</span>
         <CalendarRange className="w-4 h-4 text-gray-600" />
         <input
           type="date"
@@ -1441,8 +1442,8 @@ export default function ProducerDashboardTab() {
 
   return (
     <div className="space-y-6 isolate">
-      <div className="flex flex-wrap gap-2 sticky top-0 z-30 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 border-b py-2">
-        <div className="flex gap-2">
+      <div className="sticky top-0 z-30 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 border-b py-2">
+        <div className="flex flex-wrap gap-2 px-2">
           <button onClick={() => setTab('sales')} className={`px-3 py-1 rounded-full border ${tab === 'sales' ? 'bg-dark-green text-white' : 'bg-white'}`}>Ventes</button>
           <button onClick={() => setTab('orders')} className={`px-3 py-1 rounded-full border ${tab === 'orders' ? 'bg-dark-green text-white' : 'bg-white'}`}>Commandes</button>
           <button onClick={() => setTab('customers')} className={`px-3 py-1 rounded-full border ${tab === 'customers' ? 'bg-dark-green text-white' : 'bg-white'}`}>Utilisateurs</button>
@@ -1450,15 +1451,13 @@ export default function ProducerDashboardTab() {
           <button onClick={() => setTab('catalog')} className={`px-3 py-1 rounded-full border ${tab === 'catalog' ? 'bg-dark-green text-white' : 'bg-white'}`}>Catalogue</button>
           <button onClick={() => setTab('health')} className={`px-3 py-1 rounded-full border ${tab === 'health' ? 'bg-dark-green text-white' : 'bg-white'}`}>Santé</button>
           <button onClick={() => setTab('impact')} className={`px-3 py-1 rounded-full border ${tab === 'impact' ? 'bg-dark-green text-white' : 'bg-white'}`}>Impact</button>
-        </div>
-
-        <div className="flex gap-2 w-full">
           <button onClick={() => setTab('payments')} className={`px-3 py-1 rounded-full border ${tab === 'payments' ? 'bg-dark-green text-white' : 'bg-white'}`}>Paiements</button>
           <button onClick={() => setTab('cohorts')} className={`px-3 py-1 rounded-full border ${tab === 'cohorts' ? 'bg-dark-green text-white' : 'bg-white'}`}>Cohortes</button>
           <button onClick={() => setTab('geo')} className={`px-3 py-1 rounded-full border ${tab === 'geo' ? 'bg-dark-green text-white' : 'bg-white'}`}>Géo</button>
           <button onClick={() => setTab('reviews')} className={`px-3 py-1 rounded-full border ${tab === 'reviews' ? 'bg-dark-green text-white' : 'bg-white'}`}>Évaluations</button>
         </div>
       </div>
+
 
       {Toolbar}
 
@@ -1482,5 +1481,8 @@ export default function ProducerDashboardTab() {
         </>
       )}
     </div>
+
+
+
   )
 }

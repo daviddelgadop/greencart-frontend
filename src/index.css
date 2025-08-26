@@ -1,3 +1,4 @@
+/* stylelint-disable at-rule-no-unknown */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -30,3 +31,10 @@ body {
   backdrop-filter: blur(10px);
   background: rgba(255, 240, 177, 0.1);
 }
+
+.export-only { display: none; }
+.exporting .export-only { display: block; }
+
+.export-hide { display: block; }
+.exporting .export-hide { display: none; }
+

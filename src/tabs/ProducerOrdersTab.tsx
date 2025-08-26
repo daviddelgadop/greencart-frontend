@@ -13,7 +13,7 @@ type City = {
   department?: number
 }
 
-type AddressSnapshot = {
+type AddressLive = {
   id: number
   city: City
   user: number
@@ -27,6 +27,23 @@ type AddressSnapshot = {
   street_number: string
   deactivated_at: string | null
 }
+
+type AddressSnapshotWire = {
+  city: string
+  line1: string
+  region?: string
+  region_code?: string
+  region_id?: number
+  department?: string
+  department_code?: string
+  department_id?: number
+  city_id?: number
+  postal_code?: string
+  country?: string
+  complement?: string | null
+}
+
+type AnyAddress = AddressLive | AddressSnapshotWire
 
 type PaymentMethodSnapshot = {
   type: string
@@ -105,10 +122,10 @@ type Order = {
   order_total_avoided_waste_kg?: string
   order_total_avoided_co2_kg?: string
   created_at: string
-  shipping_address?: AddressSnapshot
-  billing_address?: AddressSnapshot
-  shipping_address_snapshot?: AddressSnapshot
-  billing_address_snapshot?: AddressSnapshot
+  shipping_address?: AddressLive
+  billing_address?: AddressLive
+  shipping_address_snapshot?: AddressSnapshotWire
+  billing_address_snapshot?: AddressSnapshotWire
   payment_method?: number
   payment_method_snapshot?: PaymentMethodSnapshot
   customer_rating?: number
@@ -163,15 +180,34 @@ export default function OrdersTab() {
     return d.toLocaleString('fr-FR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
   }
 
-  const addrLine = (a?: AddressSnapshot) => {
+  const isWire = (a: AnyAddress): a is AddressSnapshotWire =>
+    typeof (a as AddressSnapshotWire)?.city === 'string' || 'line1' in (a as any)
+
+  const addrLine = (a?: AnyAddress) => {
     if (!a) return '—'
-    const parts = [
-      [a.street_number, a.street_name].filter(Boolean).join(' '),
-      a.complement,
-      [a.city?.postal_code, a.city?.name].filter(Boolean).join(' '),
-      a.city?.country_name,
-    ].filter(Boolean)
-    return parts.join(', ')
+    if (isWire(a)) {
+      const parts = [
+        a.line1,
+        a.complement,
+        [a.postal_code, a.city].filter(Boolean).join(' '),
+        a.country,
+      ].filter(Boolean)
+      return parts.join(', ')
+    } else {
+      const parts = [
+        [a.street_number, a.street_name].filter(Boolean).join(' '),
+        a.complement,
+        [a.city?.postal_code, a.city?.name].filter(Boolean).join(' '),
+        a.city?.country_name,
+      ].filter(Boolean)
+      return parts.join(', ')
+    }
+  }
+
+  const cityName = (a?: AnyAddress) => {
+    if (!a) return ''
+    if (isWire(a)) return a.city?.toLowerCase?.() || ''
+    return a.city?.name?.toLowerCase?.() || ''
   }
 
   const statusBadge = (s: string) => {
@@ -181,6 +217,7 @@ export default function OrdersTab() {
       processing: 'bg-blue-100 text-blue-800',
       canceled: 'bg-red-100 text-red-800',
       refunded: 'bg-gray-200 text-gray-700',
+      confirmed: 'bg-emerald-100 text-emerald-800',
     }
     return map[s] || 'bg-gray-100 text-gray-800'
   }
@@ -190,9 +227,9 @@ export default function OrdersTab() {
     const base = term
       ? orders.filter(o => {
           const inCode = o.order_code?.toLowerCase().includes(term)
-          const inCity =
-            o.shipping_address_snapshot?.city?.name?.toLowerCase().includes(term) ||
-            o.billing_address_snapshot?.city?.name?.toLowerCase().includes(term)
+          const shipCity = cityName(o.shipping_address_snapshot || o.shipping_address)
+          const billCity = cityName(o.billing_address_snapshot || o.billing_address)
+          const inCity = shipCity.includes(term) || billCity.includes(term)
           const inItems = o.items?.some(it =>
             (it.bundle?.title || it.bundle_snapshot?.title || '').toLowerCase().includes(term)
           )
@@ -246,7 +283,6 @@ export default function OrdersTab() {
 
   return (
     <div className="space-y-6">
-      {/* Toolbar */}
       <div className="bg-white rounded-lg p-6 shadow-sm">
         <div className="flex items-center justify-between gap-4">
           <input
@@ -259,7 +295,6 @@ export default function OrdersTab() {
         </div>
       </div>
 
-      {/* Mobile cards */}
       <div className="md:hidden space-y-3">
         {filtered.length === 0 ? (
           <p className="text-gray-500 px-2">Aucune commande trouvée.</p>
@@ -365,17 +400,15 @@ export default function OrdersTab() {
                               <span>Qté: <b>{it.quantity}</b></span>
                               <span className="text-right">Ligne: <b>{fmtEUR(it.total_price)}</b></span>
                               <span>
-                                Économie:{' '}
-                                <b>{it.order_item_savings ? fmtEUR(it.order_item_savings) : '—'}</b>
+                                Économie: <b>{it.order_item_savings ? fmtEUR(it.order_item_savings) : '—'}</b>
                               </span>
                               <span className="text-right">
-                                Impact:{' '}
-                                <b>
-                                  {[
+                                Impact: <b>{
+                                  [
                                     it.order_item_total_avoided_waste_kg ? `${it.order_item_total_avoided_waste_kg} kg déchets` : null,
                                     it.order_item_total_avoided_co2_kg ? `${it.order_item_total_avoided_co2_kg} kg CO₂` : null,
-                                  ].filter(Boolean).join(' • ') || '—'}
-                                </b>
+                                  ].filter(Boolean).join(' • ') || '—'
+                                }</b>
                               </span>
                             </div>
                             <div className="mt-1 text-xs text-gray-600">
@@ -408,7 +441,6 @@ export default function OrdersTab() {
         )}
       </div>
 
-      {/* Desktop table */}
       <div className="bg-white rounded-lg shadow-sm overflow-hidden hidden md:block">
         {filtered.length === 0 ? (
           <p className="text-gray-500 px-6 py-6">Aucune commande trouvée.</p>

@@ -116,7 +116,7 @@ export default function AnalyticsTab() {
                 USE_FORECAST_IA ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-700'
               }`}
             >
-              {USE_FORECAST_IA ? 'OpenAI activé' : 'Sans IA'}
+              {USE_FORECAST_IA ? 'OpenAI activé' : 'OpenAI désactivé'}
             </span>
           </div>
           <div className="space-y-4">

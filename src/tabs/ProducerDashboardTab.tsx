@@ -10,6 +10,7 @@ import { useAuth } from '../contexts/AuthContext'
 import {
   ResponsiveContainer, LineChart, Line, BarChart, Bar,
   CartesianGrid, XAxis, YAxis, Tooltip, Legend,
+  Label,
 } from 'recharts'
 import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
@@ -437,93 +438,93 @@ export default function ProducerDashboardTab() {
     const container = exportRef.current as HTMLElement | null;
     if (!container) return;
 
-    const pdf = new jsPDF({ orientation: 'p', unit: 'pt', format: 'a4' });
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
+    // Show export-only blocks / hide export-hide blocks
+    container.classList.add('exporting');
+    try {
+      const pdf = new jsPDF({ orientation: 'p', unit: 'pt', format: 'a4' });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
 
-    // margins
-    const marginTop = 40;
-    const marginBottom = 40;
-    const marginLeft = 30;
-    const marginRight = 30;
+      const marginTop = 40;
+      const marginBottom = 40;
+      const marginLeft = 30;
+      const marginRight = 30;
 
-    const contentWidth = pageWidth - marginLeft - marginRight;
-    const contentHeight = pageHeight - marginTop - marginBottom;
+      const contentWidth = pageWidth - marginLeft - marginRight;
+      const contentHeight = pageHeight - marginTop - marginBottom;
 
-    // Render once at high scale
-    const canvas = await html2canvas(container, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: '#ffffff',
-      windowWidth: container.scrollWidth,
-    });
+      const canvas = await html2canvas(container, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        windowWidth: container.scrollWidth,
+        windowHeight: container.scrollHeight, // ensure full height
+      });
 
-    const imgWidth = contentWidth;
-    const imgHeight = (canvas.height / canvas.width) * imgWidth;
+      const imgWidth = contentWidth;
+      const imgHeight = (canvas.height / canvas.width) * imgWidth;
 
-    // Build a list of safe cut Y positions (in canvas pixels) at the bottom of each <tr>
-    const rows = Array.from(container.querySelectorAll('tr')) as HTMLElement[];
-    const containerRect = container.getBoundingClientRect();
-    const deviceScale = canvas.width / containerRect.width; // DOM px -> canvas px
+      const rows = Array.from(container.querySelectorAll('tr')) as HTMLElement[];
+      const containerRect = container.getBoundingClientRect();
+      const deviceScale = canvas.width / containerRect.width;
 
-    const safeCuts: number[] = [];
-    for (const tr of rows) {
-      const r = tr.getBoundingClientRect();
-      const bottomInCanvas = (r.bottom - containerRect.top) * deviceScale;
-      // Only record if inside the rendered area and visually non-empty
-      if (bottomInCanvas > 0 && bottomInCanvas < canvas.height && r.height > 4) {
-        safeCuts.push(Math.round(bottomInCanvas));
+      const safeCuts: number[] = [];
+      for (const tr of rows) {
+        const r = tr.getBoundingClientRect();
+        const bottomInCanvas = (r.bottom - containerRect.top) * deviceScale;
+        if (bottomInCanvas > 0 && bottomInCanvas < canvas.height && r.height > 4) {
+          safeCuts.push(Math.round(bottomInCanvas));
+        }
       }
-    }
-    // Ensure strictly increasing and unique
-    safeCuts.sort((a, b) => a - b);
+      safeCuts.sort((a, b) => a - b);
 
-    const pageSliceHeightCanvas = contentHeight * (canvas.width / contentWidth); // canvas px per PDF page
-    let usedBottom = 0;
+      const pageSliceHeightCanvas = contentHeight * (canvas.width / contentWidth);
+      let usedBottom = 0;
 
-    // Helper: choose the largest safe cut <= target, with a minimum progress to avoid loops
-    const pickCut = (target: number, minAdvance = 100) => {
-      let pick = -1;
-      for (const y of safeCuts) {
-        if (y <= target && y - usedBottom >= minAdvance) pick = y;
-        else if (y > target) break;
+      const pickCut = (target: number, minAdvance = 100) => {
+        let pick = -1;
+        for (const y of safeCuts) {
+          if (y <= target && y - usedBottom >= minAdvance) pick = y;
+          else if (y > target) break;
+        }
+        return pick > 0 ? pick : Math.min(Math.round(target), canvas.height);
+      };
+
+      let pageIndex = 0;
+
+      while (usedBottom < canvas.height - 1) {
+        const targetBottom = usedBottom + pageSliceHeightCanvas;
+        const cutBottom = pickCut(targetBottom);
+
+        const sliceHeight = cutBottom - usedBottom;
+
+        const sliceCanvas = document.createElement('canvas');
+        sliceCanvas.width = canvas.width;
+        sliceCanvas.height = sliceHeight;
+        const sctx = sliceCanvas.getContext('2d')!;
+        sctx.drawImage(
+          canvas,
+          0, usedBottom, canvas.width, sliceHeight,
+          0, 0, canvas.width, sliceHeight
+        );
+
+        const sliceImg = sliceCanvas.toDataURL('image/png');
+        if (pageIndex > 0) pdf.addPage();
+
+        const sliceImgHeightInPdf = (sliceHeight / canvas.width) * imgWidth;
+        const y = marginTop;
+
+        pdf.addImage(sliceImg, 'PNG', marginLeft, y, imgWidth, sliceImgHeightInPdf);
+
+        usedBottom = cutBottom;
+        pageIndex += 1;
       }
-      return pick > 0 ? pick : Math.min(Math.round(target), canvas.height);
-    };
 
-    const ctx = document.createElement('canvas').getContext('2d')!;
-    let pageIndex = 0;
-
-    while (usedBottom < canvas.height - 1) {
-      const targetBottom = usedBottom + pageSliceHeightCanvas;
-      const cutBottom = pickCut(targetBottom);
-
-      const sliceHeight = cutBottom - usedBottom;
-
-      // Create a slice canvas for this page
-      const sliceCanvas = document.createElement('canvas');
-      sliceCanvas.width = canvas.width;
-      sliceCanvas.height = sliceHeight;
-      const sctx = sliceCanvas.getContext('2d')!;
-      sctx.drawImage(
-        canvas,
-        0, usedBottom, canvas.width, sliceHeight, // src
-        0, 0, canvas.width, sliceHeight           // dst
-      );
-
-      const sliceImg = sliceCanvas.toDataURL('image/png');
-      if (pageIndex > 0) pdf.addPage();
-
-      const sliceImgHeightInPdf = (sliceHeight / canvas.width) * imgWidth;
-      const y = marginTop;
-
-      pdf.addImage(sliceImg, 'PNG', marginLeft, y, imgWidth, sliceImgHeightInPdf);
-
-      usedBottom = cutBottom;
-      pageIndex += 1;
+      pdf.save(`GreenCart-rapport-${tab}-${dateFrom}_au_${dateTo}.pdf`);
+    } finally {
+      // Restore screen state
+      container.classList.remove('exporting');
     }
-
-    pdf.save(`GreenCart-rapport-${tab}-${dateFrom}_au_${dateTo}.pdf`);
   };
 
 
@@ -624,42 +625,39 @@ export default function ProducerDashboardTab() {
     </div>
   )
 
+    
   /* ---------- Export wrapper (header + KPIs + chart + table) ---------- */
-  const ExportFrame: React.FC<{ title: string; note?: string; filtersText?: string; children: React.ReactNode }> = ({ title, note, filtersText, children }) => {
+  const ExportFrame: React.FC<{
+    title: string
+    note?: string
+    filtersText?: string
+    children: React.ReactNode
+  }> = ({ title, note, filtersText, children }) => {
     return (
       <div ref={exportRef} className="bg-white rounded-lg p-4 md:p-6 shadow-sm space-y-4">
-        <div className="flex items-start justify-between gap-4 border-b pb-3">
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded bg-dark-green" />
-            <div>
-              <div className="text-base font-semibold text-dark-green">{title}</div>
-              <div className="text-xs text-gray-600">
-                Du {fmtDate(dateFrom)} au {fmtDate(dateTo)} • {new Date().toLocaleString('fr-FR')}
-              </div>
-              <div className="text-xs text-gray-600">
-                Onglet: {tab} • Granularité: {bucket} {tab === 'geo' ? `• Niveau: ${geoLevel}` : ''}
-              </div>
-              <div className="text-xs text-gray-600">
-                Organisation/compte: — • Utilisateur: {user?.email ?? '—'}
+        {/* This block will be hidden on screen and shown in export */}
+        <div className="export-only">
+          <div className="flex items-start justify-between gap-4 border-b pb-3">
+            <div className="flex items-center gap-3">
+              <img src="/images/logo.png" alt="Logo" className="h-12 w-auto object-contain" />
+              <div>
+                <div className="text-base font-semibold text-dark-green">{title}</div>
+                <div className="text-xs text-gray-600">
+                  Du {fmtDate(dateFrom)} au {fmtDate(dateTo)} • {new Date().toLocaleString('fr-FR')}
+                </div>
+                <div className="text-xs text-gray-600">
+                  Onglet: {tab} • Granularité: {bucket} {tab === 'geo' ? `• Niveau: ${geoLevel}` : ''}
+                </div>
+                <div className="text-xs text-gray-600">Utilisateur: {user?.email ?? '—'}</div>
               </div>
             </div>
+            <div className="text-[10px] px-2 py-1 rounded border bg-amber-50 text-amber-800">
+              Confidentiel — Usage interne uniquement
+            </div>
           </div>
-          <div className="text-[10px] px-2 py-1 rounded border bg-amber-50 text-amber-800">
-            Confidentiel — Usage interne uniquement
-          </div>
+
+          {note && <div className="text-xs text-gray-600 italic">{note}</div>}
         </div>
-
-        {/*filtersText && filtersText.length > 0 && (
-          <div className="text-xs text-gray-700">
-            Filtres appliqués: {filtersText}
-          </div>
-        )}*/}
-
-        {note && (
-          <div className="text-xs text-gray-600 italic">
-            {note}
-          </div>
-        )}
 
         {children}
       </div>
@@ -667,7 +665,9 @@ export default function ProducerDashboardTab() {
   }
 
 
-/* ---------- Chart shell ---------- */
+
+    
+  /* ---------- Chart shell ---------- */
   const chartShell = (
     key: string,
     children: React.ReactNode,
@@ -675,32 +675,59 @@ export default function ProducerDashboardTab() {
     withAngleTicks?: boolean,
     dataKey?: string,
     xAxisLabel?: string
-  ) => (
-    <div className="bg-white rounded-lg p-6 shadow-sm relative z-0 isolate max-w-full min-w-0 overflow-hidden">
-      <h4 className="text-sm font-semibold text-dark-green mb-3">{title}</h4>
-      <div className="w-full h-[300px] md:h-[360px] min-w-0 overflow-hidden">
-        <ResponsiveContainer width="100%" height="100%" key={rcKey(key)}>
-          {React.cloneElement(children as any, {}, [
-            <CartesianGrid key="grid" strokeDasharray="3 3" />,
-            <XAxis
-              key="x"
-              dataKey={dataKey || 'period'}
-              interval="preserveStartEnd"
-              height={withAngleTicks ? 120 : undefined}
-              tickMargin={withAngleTicks ? 10 : 6}
-              tick={
-                withAngleTicks
-                  ? ((<AngleTick angle={xTickAngle} />) as any)
-                  : { fontSize: 12, fill: '#333' }
-              }
-              label={xAxisLabel ? { value: xAxisLabel, position: 'insideBottom', offset: -5 } : undefined}
-            />,
-            ...React.Children.toArray((children as any).props.children),
-          ])}
-        </ResponsiveContainer>
+  ) => {
+    const chartEl = children as any
+    const dataLen = Array.isArray(chartEl?.props?.data) ? chartEl.props.data.length : 0
+
+    // Detect if chart contains <Bar />
+    const hasBars = React.Children.toArray(chartEl?.props?.children || []).some(
+      (c: any) => c?.type?.displayName === 'Bar' || c?.type?.name === 'Bar'
+    )
+
+    const xHeight = withAngleTicks
+      ? (Math.abs(xTickAngle) >= 60 ? 140 : 120)
+      : undefined
+
+    return (
+      <div className="bg-white rounded-lg p-6 shadow-sm relative z-0 isolate max-w-full min-w-0 overflow-hidden">
+        <h4 className="text-sm font-semibold text-dark-green mb-3">{title}</h4>
+        <div className="w-full h-[300px] md:h-[360px] min-w-0 overflow-hidden">
+          <ResponsiveContainer width="100%" height="100%" key={rcKey(key)}>
+            {React.cloneElement(chartEl, {}, [
+              <CartesianGrid key="grid" strokeDasharray="3 3" />,
+              <XAxis
+                key="x"
+                dataKey={dataKey || 'period'}
+                interval={dataLen > 30 ? 'preserveStartEnd' : 0}
+                minTickGap={0}
+                height={xHeight}
+                tickMargin={withAngleTicks ? 10 : 6}
+                scale={hasBars ? 'band' : 'point'}
+                padding={hasBars ? { left: 0, right: 0 } : { left: 10, right: 10 }}
+                allowDuplicatedCategory={false}
+                tick={
+                  withAngleTicks
+                    ? ((<AngleTick angle={xTickAngle} />) as any)
+                    : { fontSize: 12, fill: '#333' }
+                }
+              >
+                {xAxisLabel && (
+                  <Label
+                    value={xAxisLabel}
+                    position="insideBottom"
+                    offset={-10}
+                    style={{ fontSize: 12, fill: '#333' }}
+                  />
+                )}
+              </XAxis>,
+              ...React.Children.toArray(chartEl.props.children),
+            ])}
+          </ResponsiveContainer>
+        </div>
       </div>
-    </div>
-  )
+    )
+  }
+
 
 
 
@@ -852,7 +879,7 @@ export default function ProducerDashboardTab() {
                   <td className="px-4 py-2">{r.company_name ?? (Array.isArray(r.company_names) ? r.company_names.join(', ') : '')}</td>
                   <td className="px-4 py-2">{fmtDateTime(r.created_at)}</td>
                   <td className="px-4 py-2">{r.user_name ?? r.customer_name ?? r.user ?? r.user_id ?? '—'}</td>
-                  <td className="px-4 py-2">{r.order_id}</td>
+                  <td className="px-4 py-2">{r.order_code}</td>
                   <td className="px-4 py-2">{r.item_id}</td>
                   <td className="px-4 py-2">{`${r.bundle_title ?? r.label ?? '—'} x ${asNum(r.quantity, 1)}`}</td>
                   <td className="px-4 py-2 text-right">{fmtEur(asNum(r.line_total || r.unit_price))}</td>
@@ -871,7 +898,7 @@ export default function ProducerDashboardTab() {
 
     return (
       <ExportFrame
-        title="GreenCart — Rapport d’analytique"
+        title="Rapport d’analytique"
         note="Note graphique: lignes — CA (€) vs Cmd/Unités, regroupement selon la granularité."
         filtersText={currentFiltersSummary.current}
       >
@@ -930,11 +957,12 @@ export default function ProducerDashboardTab() {
         <Tooltip />
         <Legend wrapperStyle={{ overflow: 'hidden' }} />
         <Line yAxisId="left" type="monotone" dataKey="revenue" name="CA (€)" stroke="#14532d" strokeWidth={2} dot={false} />
-        <Line yAxisId="right" type="monotone" dataKey="orders" name="Cmd" stroke="#4d7c0f" strokeWidth={2} dot={false} />
-        <Line yAxisId="right" type="monotone" dataKey="units" name="Unités" stroke="#0e7490" strokeWidth={2} dot={false} />
+        <Line yAxisId="right" type="monotone" dataKey="orders"  name="Cmd"    stroke="#4d7c0f" strokeWidth={2} dot={false} />
+        <Line yAxisId="right" type="monotone" dataKey="units"   name="Unités"  stroke="#0e7490" strokeWidth={2} dot={false} />
       </LineChart>,
       'Commandes / CA / unités',
-      true
+      true,
+      'period'
     )
 
     const itemRows = orders.flatMap((o: any) => {
@@ -959,6 +987,7 @@ export default function ProducerDashboardTab() {
 
         return {
           order_id: o.id,
+          order_code: o.order_code ?? o.code ?? (o.order?.order_code) ?? '—',
           created_at: o.created_at,
           status: o.status,
           user_name: o.user_name ?? o.customer_name ?? o.user ?? o.user_id ?? '—',
@@ -1036,7 +1065,7 @@ export default function ProducerDashboardTab() {
                   </td>
                   <td className="px-4 py-2">{fmtDateTime(r.created_at)}</td>
                   <td className="px-4 py-2">{r.user_name}</td>
-                  <td className="px-4 py-2">{r.order_id}</td>
+                  <td className="px-4 py-2">{r.order_code}</td>
                   <td className="px-4 py-2">{r.item_id}</td>
                   <td className="px-4 py-2">
                     {`${r.bundle_title} x ${asNum(r.quantity, 1)}`}
@@ -1063,7 +1092,7 @@ export default function ProducerDashboardTab() {
 
     return (
       <ExportFrame
-        title="GreenCart — Rapport d’analytique"
+        title="Rapport d’analytique"
         note="Note graphique: lignes — CA (€), commandes et unités par période."
         filtersText={currentFiltersSummary.current}
       >
@@ -1111,7 +1140,12 @@ export default function ProducerDashboardTab() {
 
     const chart = chartShell(
       'customers',
-      <BarChart data={rSeries} barCategoryGap="15%" margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+      <BarChart
+        data={rSeries}
+        barCategoryGap="15%"
+        barGap={2}
+        margin={{ top: 8, right: 0, bottom: 0, left: 0 }}
+      >
         <YAxis allowDecimals={false} />
         <Tooltip />
         <Legend wrapperStyle={{ overflow: 'hidden' }} />
@@ -1125,13 +1159,17 @@ export default function ProducerDashboardTab() {
         />
       </BarChart>,
       'Nouveaux clients / période',
-      true
+      true,
+      'period',     
+      'Période' 
     )
 
     const itemRows = items.map((r) => ({
       created_at: r.created_at,
       user_name: r.user_name ?? r.user ?? r.user_id ?? '—',
       order_id: r.order_id,
+      order_code: r.order_code ?? r.order?.order_code ?? '—',
+      order_item_id: r.order_item_id ?? r.item_id ?? r.id,
       item_id: r.order_item_id ?? r.item_id ?? r.id,
       quantity: asNum(r.quantity),
       amount: asNum(r.amount ?? r.total_price ?? r.subtotal ?? 0),
@@ -1201,8 +1239,8 @@ export default function ProducerDashboardTab() {
                   </td>
                   <td className="px-4 py-2">{fmtDateTime(r.created_at)}</td>
                   <td className="px-4 py-2">{r.user_name}</td>
-                  <td className="px-4 py-2">{r.order_id}</td>
-                  <td className="px-4 py-2">{r.item_id}</td>
+                  <td className="px-4 py-2">{r.order_code}</td>
+                  <td className="px-4 py-2">{r.order_item_id}</td>
                   <td className="px-4 py-2">{asNum(r.quantity, 0)}</td>
                   <td className="px-4 py-2">{r.status}</td>
                   <td className="px-4 py-2 text-right">{fmtEur(asNum(r.amount))}</td>
@@ -1223,7 +1261,7 @@ export default function ProducerDashboardTab() {
 
     return (
       <ExportFrame
-        title="GreenCart — Rapport d’analytique"
+        title="Rapport d’analytique"
         note="Note graphique: barres — nouveaux clients par période."
         filtersText={currentFiltersSummary.current}
       >
@@ -1488,7 +1526,7 @@ export default function ProducerDashboardTab() {
 
     return (
       <ExportFrame
-        title="GreenCart — Rapport d’analytique"
+        title="Rapport d’analytique"
         note="Note graphique: barres — produits les plus abandonnés (quantité et somme estimée)."
         filtersText={currentFiltersSummary.current}
       >
@@ -1641,7 +1679,7 @@ export default function ProducerDashboardTab() {
 
     return (
       <ExportFrame
-        title="GreenCart — Rapport d’analytique"
+        title="Rapport d’analytique"
         note="Note graphique: barres — stock vs vendu par produit."
         filtersText={currentFiltersSummary.current}
       >
@@ -1829,7 +1867,7 @@ const healthView = useMemo(() => {
 
   return (
     <ExportFrame
-      title="GreenCart — Rapport d’analytique"
+      title="Rapport d’analytique"
       note="Note graphique: barres — niveau de stock et ventes."
       filtersText={currentFiltersSummary.current}
     >
@@ -1901,6 +1939,7 @@ const healthView = useMemo(() => {
       company_name: r.company_name ?? (Array.isArray(r.company_names) ? r.company_names.join(', ') : ''),
       created_at: r.created_at,
       user_name: r.user_name ?? r.customer_name ?? r.user ?? r.user_id ?? '—',
+      order_code: r.order_code,
       order_id: r.order_id,
       item_id: r.item_id,
       bundle_title: r.bundle_title ?? '—',
@@ -1960,7 +1999,7 @@ const healthView = useMemo(() => {
                 <td className="px-4 py-2">{r.company_name}</td>
                 <td className="px-4 py-2">{fmtDateTime(r.created_at)}</td>
                 <td className="px-4 py-2">{r.user_name}</td>
-                <td className="px-4 py-2">{r.order_id}</td>
+                <td className="px-4 py-2">{r.order_code}</td>
                 <td className="px-4 py-2">{r.item_id}</td>
                 <td className="px-4 py-2">{r.bundle_title}</td>
                 <td className="px-4 py-2 text-right">{r.avoided_co2_kg.toFixed(2)}</td>
@@ -1977,7 +2016,7 @@ const healthView = useMemo(() => {
 
     return (
       <ExportFrame
-        title="GreenCart — Rapport d’analytique"
+        title="Rapport d’analytique"
         note="Note graphique: barres — CO₂ et gaspillage évités par période."
         filtersText={currentFiltersSummary.current}
       >
@@ -2028,7 +2067,6 @@ const healthView = useMemo(() => {
       'pm'  
     )
 
-
     const orderRows: any[] = rows
 
     const prodVals = Array.from(new Set(orderRows.map(r => Array.isArray(r.producer_names) ? r.producer_names.join(', ') : (r.producer_name ?? ''))))
@@ -2074,7 +2112,7 @@ const healthView = useMemo(() => {
                 <th className="px-4 py-2 text-left">
                   <HeaderFilter title="Utilisateur" values={userVals} colKey="user" state={paymentsFilters} />
                 </th>
-                <th className="px-4 py-2 text-left">Cmd</th>
+                <th className="px-4 py-2 text-left">Commande</th>
                 <th className="px-4 py-2 text-left">Item</th>
                 <th className="px-4 py-2 text-left">
                   <HeaderFilter title="Méthode" values={pmVals} colKey="method" state={paymentsFilters} />
@@ -2095,7 +2133,7 @@ const healthView = useMemo(() => {
                   </td>
                   <td className="px-4 py-2">{fmtDateTime(r.created_at)}</td>
                   <td className="px-4 py-2">{r.user_name ?? r.customer_name ?? r.user ?? r.user_id ?? '—'}</td>
-                  <td className="px-4 py-2">{r.order_id}</td>
+                  <td className="px-4 py-2">{r.order_code}</td>
                   <td className="px-4 py-2">{r.order_item_id ?? r.item_id ?? '—'}</td>
                   <td className="px-4 py-2">{r.method ?? r.payment_method ?? '—'}</td>
                   <td className="px-4 py-2 text-right">{fmtEur(asNumber(r.amount ?? r.total_price ?? 0))}</td>
@@ -2114,7 +2152,7 @@ const healthView = useMemo(() => {
 
     return (
       <ExportFrame
-        title="GreenCart — Rapport d’analytique"
+        title="Rapport d’analytique"
         note="Note graphique: barres — taux de succès et AOV par méthode de paiement."
         filtersText={currentFiltersSummary.current}
       >
@@ -2192,7 +2230,7 @@ const healthView = useMemo(() => {
     )
     return (
       <ExportFrame
-        title="GreenCart — Rapport d’analytique"
+        title="Rapport d’analytique"
         note="Note: tableau des cohortes avec offsets (+0, +1, ...)."
         filtersText={currentFiltersSummary.current}
       >
@@ -2345,7 +2383,7 @@ const healthView = useMemo(() => {
                   </td>
                   <td className="px-4 py-2">{fmtDateTime(r.created_at)}</td>
                   <td className="px-4 py-2">{r.user_name ?? r.customer_name ?? r.user ?? r.user_id ?? '—'}</td>
-                  <td className="px-4 py-2">{r.order_id}</td>
+                  <td className="px-4 py-2">{r.order_code}</td>
                   <td className="px-4 py-2">{r.order_item_id ?? '—'}</td>
                   <td className="px-4 py-2">{r.zone_desc ?? r.zone ?? '—'}</td>
                   <td className="px-4 py-2 text-right">
@@ -2366,7 +2404,7 @@ const healthView = useMemo(() => {
 
     return (
       <ExportFrame
-        title="GreenCart — Rapport d’analytique"
+        title="Rapport d’analytique"
         note="Note: répartition géographique des commandes."
         filtersText={currentFiltersSummary.current}
       >
@@ -2510,7 +2548,7 @@ const healthView = useMemo(() => {
                   </td>
                   <td className="px-4 py-2">{fmtDateTime(r.rated_at ?? r.created_at)}</td>
                   <td className="px-4 py-2">{r.type}</td>
-                  <td className="px-4 py-2">{r.order_id ?? '—'}</td>
+                  <td className="px-4 py-2">{r.order_code ?? '—'}</td>
                   <td className="px-4 py-2">{r.item_id ?? '—'}</td>
                   <td className="px-4 py-2">{r.bundle_title ?? r.title ?? '—'}</td>
                   <td className="px-4 py-2">{r.rating ?? r.customer_rating ?? '—'}</td>

@@ -56,11 +56,11 @@ export default function Cart() {
   }
   
   const totalAvoidedWaste = state.items.reduce(
-    (sum, item) => sum + (Number(item.total_avoided_waste_kg) || 0) * item.quantity,
+    (sum, item) => sum + (Number(item.total_avoided_waste_kg) || 0),
     0
   )
   const totalAvoidedCO2 = state.items.reduce(
-    (sum, item) => sum + (Number(item.total_avoided_co2_kg) || 0) * item.quantity,
+    (sum, item) => sum + (Number(item.total_avoided_co2_kg) || 0),
     0
   )
 

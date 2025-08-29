@@ -451,9 +451,9 @@ export default function ProducerDashboardTab() {
 
     } else if (tab === 'customers') {
       cards.push(
-        { icon: <Users className="w-4 h-4" />, label: 'Clients', value: String(asNum(s.customers ?? s.count)) },
         { icon: <TrendingUp className="w-4 h-4" />, label: 'CA', value: fmtEur(asNum(s.revenue)) },
         { icon: <Receipt className="w-4 h-4" />, label: 'Commandes', value: String(asNum(s.orders)) },
+        { icon: <Users className="w-4 h-4" />, label: 'Clients', value: String(asNum(s.customers ?? s.count)) },
       )
 
 

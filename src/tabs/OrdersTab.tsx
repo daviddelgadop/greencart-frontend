@@ -9,20 +9,32 @@ import type {
 import { http } from '../lib/api'
 
 type Image = { id: number; image: string }
+
 type Product = {
   id: number
   title: string
   images?: Image[]
   company_data?: { name: string | null }
 }
-type BundleItem = { product: Product; quantity?: number; best_before_date?: string | null }
+
+type BundleProductLine = {
+  product: Product
+  quantity?: number
+  best_before_date?: string | null
+  avoided_waste_kg?: string | number | null
+  avoided_co2_kg?: string | number | null
+}
+
 type Bundle = {
   id: number
   title: string
-  items: BundleItem[]
+  items: BundleProductLine[]
   producer_data?: { public_display_name?: string | null }
   stock?: number
+  total_avoided_waste_kg?: string | number | null
+  total_avoided_co2_kg?: string | number | null
 }
+
 type OrderItem = {
   id: number
   bundle: Bundle
@@ -32,8 +44,12 @@ type OrderItem = {
   customer_rating?: number | null
   customer_note?: string | null
   rated_at?: string | null
+  order_item_total_avoided_waste_kg?: string | number | null
+  order_item_total_avoided_co2_kg?: string | number | null
 }
+
 type City = { name: string }
+
 type Address = {
   line1?: string | null
   line2?: string | null
@@ -41,7 +57,9 @@ type Address = {
   city?: City | null
   country?: string | null
 }
+
 type PaymentMethodSnap = { provider?: string; digits?: string }
+
 type Order = {
   id: number
   order_code: string
@@ -70,6 +88,7 @@ function normalizeStatus(s: string) {
   if (['cancelled', 'annulée'].includes(v)) return 'Annulée'
   return s
 }
+
 function statusClasses(s: string) {
   const v = normalizeStatus(s)
   if (v === 'Évaluée') return 'bg-green-100 text-green-800'
@@ -79,6 +98,7 @@ function statusClasses(s: string) {
   if (v === 'Annulée') return 'bg-red-100 text-red-800'
   return 'bg-gray-100 text-gray-800'
 }
+
 function formatDateTimeFR(iso: string) {
   try {
     return new Date(iso).toLocaleString('fr-FR', {
@@ -92,6 +112,7 @@ function formatDateTimeFR(iso: string) {
     return iso
   }
 }
+
 function extractThumbnails(order: Order, max = 4): string[] {
   const urls: string[] = []
   for (const it of order.items || []) {
@@ -107,6 +128,7 @@ function extractThumbnails(order: Order, max = 4): string[] {
   }
   return urls
 }
+
 function collectSearchHaystack(o: Order): string {
   const fields: string[] = []
   fields.push(o.order_code || '')
@@ -123,6 +145,7 @@ function collectSearchHaystack(o: Order): string {
   }
   return fields.join(' ').toLowerCase()
 }
+
 const safeNumber = (v: unknown): number => {
   const n = typeof v === 'string' ? parseFloat(v) : typeof v === 'number' ? v : NaN
   return Number.isFinite(n) ? n : 0
@@ -175,6 +198,7 @@ function generateTrackingFor(order: Order): string | null {
 function firstImage(orderItem: OrderItem): string {
   return orderItem.bundle?.items?.[0]?.product?.images?.[0]?.image || ''
 }
+
 function earliestDate(dates: (string | null | undefined)[]): string | null {
   const ts = dates
     .filter(Boolean)
@@ -183,7 +207,8 @@ function earliestDate(dates: (string | null | undefined)[]): string | null {
   if (ts.length === 0) return null
   return new Date(Math.min(...ts)).toISOString()
 }
-function toCartBundleItems(items: BundleItem[]): CartBundleItem[] {
+
+function toCartBundleItems(items: BundleProductLine[]): CartBundleItem[] {
   return (items || []).map((bi) => {
     const p = bi.product
     const product: CartProduct = {
@@ -200,6 +225,40 @@ function toCartBundleItems(items: BundleItem[]): CartBundleItem[] {
   })
 }
 
+function computePerItemImpact(order: Order, item: OrderItem): { wasteKg: number; co2Kg: number } {
+  const directWaste = safeNumber(item.order_item_total_avoided_waste_kg)
+  const directCO2 = safeNumber(item.order_item_total_avoided_co2_kg)
+  if (directWaste > 0 || directCO2 > 0) return { wasteKg: directWaste, co2Kg: directCO2 }
+
+  const bundleUnitWaste = safeNumber(item.bundle.total_avoided_waste_kg)
+  const bundleUnitCO2 = safeNumber(item.bundle.total_avoided_co2_kg)
+  if (bundleUnitWaste > 0 || bundleUnitCO2 > 0) {
+    return {
+      wasteKg: +(bundleUnitWaste * (item.quantity || 1)).toFixed(3),
+      co2Kg: +(bundleUnitCO2 * (item.quantity || 1)).toFixed(3),
+    }
+  }
+
+  const sumFromLines = (key: 'avoided_waste_kg' | 'avoided_co2_kg') =>
+    item.bundle.items.reduce((acc, bi) => acc + safeNumber((bi as any)[key]) * (safeNumber(bi.quantity) || 1), 0)
+
+  const linesWaste = sumFromLines('avoided_waste_kg')
+  const linesCO2 = sumFromLines('avoided_co2_kg')
+  if (linesWaste > 0 || linesCO2 > 0) {
+    return { wasteKg: +linesWaste.toFixed(3), co2Kg: +linesCO2.toFixed(3) }
+  }
+
+  const totalOrderWaste = safeNumber(order.order_total_avoided_waste_kg)
+  const totalOrderCO2 = safeNumber(order.order_total_avoided_co2_kg)
+  const orderSubtotal = order.items.reduce((acc, it) => acc + safeNumber(it.total_price), 0)
+  const itemSubtotal = safeNumber(item.total_price)
+  const share = orderSubtotal > 0 ? itemSubtotal / orderSubtotal : 0
+  return {
+    wasteKg: +((totalOrderWaste || 0) * share).toFixed(3),
+    co2Kg: +((totalOrderCO2 || 0) * share).toFixed(3),
+  }
+}
+
 function Star({ filled, onClick, disabled = false }: { filled: boolean; onClick: () => void; disabled?: boolean }) {
   return (
     <button
@@ -213,6 +272,7 @@ function Star({ filled, onClick, disabled = false }: { filled: boolean; onClick:
     </button>
   )
 }
+
 function StarRating({
   value,
   onChange,
@@ -300,10 +360,6 @@ export default function OrdersTab() {
 
   const onReorder = async (order: Order) => {
     try {
-      const totalOrderWaste = Number(order.order_total_avoided_waste_kg) || 0
-      const totalOrderCO2 = Number(order.order_total_avoided_co2_kg) || 0
-      const orderSubtotal = order.items.reduce((acc, it) => acc + (Number(it.total_price) || 0), 0)
-
       const eligibleItems = order.items.filter(it => {
         const stock = (it.bundle && typeof it.bundle.stock === 'number') ? it.bundle.stock! : Infinity
         return stock >= it.quantity
@@ -312,10 +368,10 @@ export default function OrdersTab() {
 
       await Promise.all(
         eligibleItems.map(async (item) => {
-          const itemSubtotal = Number(item.total_price) || 0
-          const share = orderSubtotal > 0 ? itemSubtotal / orderSubtotal : 0
+          const { wasteKg, co2Kg } = computePerItemImpact(order, item)
 
           const cartItems = toCartBundleItems(item.bundle.items)
+          const itemSubtotal = safeNumber(item.total_price)
           const unitPrice = item.quantity > 0 ? itemSubtotal / item.quantity : itemSubtotal
           const dluo = earliestDate(cartItems.map(ci => ci.best_before_date))
 
@@ -328,10 +384,17 @@ export default function OrdersTab() {
             dluo,
             items: cartItems,
             producerName: undefined,
-            total_avoided_waste_kg: +(totalOrderWaste * share).toFixed(3),
-            total_avoided_co2_kg: +(totalOrderCO2 * share).toFixed(3)
+            total_avoided_waste_kg: +wasteKg.toFixed(3),
+            total_avoided_co2_kg: +co2Kg.toFixed(3),
           }
-          await addToCart(payload)
+
+          await addToCart(
+            payload,
+            {
+              avoided_waste_kg: payload.total_avoided_waste_kg,
+              avoided_co2_kg: payload.total_avoided_co2_kg,
+            }
+          )
         })
       )
 
@@ -581,6 +644,7 @@ export default function OrdersTab() {
                           const key = `${order.id}:${item.id}`
                           const draft = itemRatingDraft[key] || { rating: item.customer_rating || 0, note: item.customer_note || '' }
                           const readOnly = orderRated || !!item.customer_rating
+                          const impact = computePerItemImpact(order, item)
 
                           return (
                             <li key={item.id} className="rounded-lg border p-3 bg-white">
@@ -615,6 +679,8 @@ export default function OrdersTab() {
                                           • Économie: {fmtEuro(clamp0(safeNumber(item.order_item_savings)))}
                                         </span>
                                       )}
+                                      <span className="ml-2">• Déchets évités: {fmtKg(impact.wasteKg)}</span>
+                                      <span className="ml-2">• CO₂ évité: {fmtKg(impact.co2Kg)}</span>
                                     </div>
                                   </div>
                                 </div>
@@ -674,6 +740,7 @@ export default function OrdersTab() {
                           {order.items.map(item => {
                             const firstImg = item.bundle?.items?.[0]?.product?.images?.[0]?.image
                             const companyName = item.bundle?.items?.[0]?.product?.company_data?.name || ''
+                            const impact = computePerItemImpact(order, item)
                             return (
                               <li key={item.id} className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                                 <div className="flex items-start gap-3 min-w-0">
@@ -709,6 +776,8 @@ export default function OrdersTab() {
                                           • Économie: {fmtEuro(clamp0(safeNumber(item.order_item_savings)))}
                                         </span>
                                       )}
+                                      <span className="ml-2">• Déchets évités: {fmtKg(impact.wasteKg)}</span>
+                                      <span className="ml-2">• CO₂ évité: {fmtKg(impact.co2Kg)}</span>
                                     </div>
                                   </div>
                                 </div>

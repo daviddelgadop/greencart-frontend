@@ -1,3 +1,4 @@
+// src/contexts/CartContext.tsx
 import React, {
   createContext,
   useContext,
@@ -49,41 +50,17 @@ function reducer(state: CartState, action: Action): CartState {
     case 'ADD_TO_CART': {
       const exists = state.items.find(i => i.id === action.payload.id)
       const items = exists
-        ? state.items.map(i => {
-            if (i.id !== action.payload.id) return i
-            const addedQty = action.payload.quantity
-            const perUnitWaste = i.quantity > 0 ? (i.total_avoided_waste_kg / i.quantity) : 0
-            const perUnitCO2 = i.quantity > 0 ? (i.total_avoided_co2_kg / i.quantity) : 0
-            const addedWaste = action.payload.total_avoided_waste_kg > 0
-              ? action.payload.total_avoided_waste_kg
-              : perUnitWaste * addedQty
-            const addedCO2 = action.payload.total_avoided_co2_kg > 0
-              ? action.payload.total_avoided_co2_kg
-              : perUnitCO2 * addedQty
-            return {
-              ...i,
-              quantity: i.quantity + addedQty,
-              total_avoided_waste_kg: i.total_avoided_waste_kg + addedWaste,
-              total_avoided_co2_kg: i.total_avoided_co2_kg + addedCO2,
-            }
-          })
+        ? state.items.map(i =>
+            i.id === action.payload.id
+              ? { ...i, quantity: i.quantity + action.payload.quantity }
+              : i
+          )
         : [...state.items, action.payload]
       return { items, total: calcTotal(items) }
     }
     case 'UPDATE_QUANTITY': {
       const items = state.items
-        .map(i => {
-          if (i.id !== action.payload.id) return i
-          const nextQty = Math.max(1, action.payload.quantity)
-          const perUnitWaste = i.quantity > 0 ? (i.total_avoided_waste_kg / i.quantity) : 0
-          const perUnitCO2 = i.quantity > 0 ? (i.total_avoided_co2_kg / i.quantity) : 0
-          return {
-            ...i,
-            quantity: nextQty,
-            total_avoided_waste_kg: perUnitWaste * nextQty,
-            total_avoided_co2_kg: perUnitCO2 * nextQty,
-          }
-        })
+        .map(i => (i.id === action.payload.id ? { ...i, quantity: action.payload.quantity } : i))
         .filter(i => i.quantity > 0)
       return { items, total: calcTotal(items) }
     }
@@ -117,6 +94,41 @@ type CartContextType = {
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined)
+
+//function resolveImage(url?: string | null): string {
+//  if (DEBUG_MEDIA) console.groupCollapsed('[resolveImage] in:', url)
+//  if (!url) {
+//    if (DEBUG_MEDIA) console.groupEnd()
+//    return ''
+//  }
+//  if (/^https?:\/\//i.test(url)) {
+//    if (DEBUG_MEDIA) {
+//      console.log('absolute passthrough:', url)
+//      console.groupEnd()
+//    }
+//    return url
+//  }
+//
+//  let u = url.startsWith('/') ? url : `/${url}`
+//  u = u.replace(/\/media\/media\//g, '/media/')
+//  if (!/^\/media\//.test(u)) {
+//    u = u.startsWith('/media')
+//      ? u.replace(/^\/media(?!\/)/, '/media/')
+//      : `/media${u}`
+//  }
+
+//  const base = http.defaults?.baseURL || ''
+//  const finalUrl = `${base.replace(/\/+$/, '')}${u}`
+//
+//  if (DEBUG_MEDIA) {
+//    if (/\/media\/media\//.test(finalUrl)) {
+//      console.warn('DOUBLE MEDIA DETECTED after resolve:', finalUrl)
+//    }
+//    console.log('out:', finalUrl)
+//    console.groupEnd()
+//  }
+//  return finalUrl
+//  }
 
 function getGuestKey() {
   let key = localStorage.getItem('guest_session_key')
@@ -163,6 +175,7 @@ function mapServerItems(serverItems: any[]): CartItem[] {
       : undefined
 
     const imageRaw = rawA ?? rawB ?? rawC ?? rawArray0 ?? ''
+    //const image = resolveImage(imageRaw)
     const image = imageRaw
 
     const qty = Math.max(1, Number(it.quantity ?? 1))
@@ -213,8 +226,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!DEBUG_MEDIA) return
+    //console.groupCollapsed('[state] items images after update')
     state.items.forEach(it => {
+    //  console.log(`item bundle=${it.id} serverItemId=${it.serverItemId} image=`, it.image)
     })
+    //console.groupEnd()
   }, [state.items])
 
   const mergedOnceRef = useRef(false)
@@ -273,21 +289,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }
 
   const addToCart: CartContextType['addToCart'] = async (item, impact) => {
-    // Keep local totals for optimistic UI
     dispatch({ type: 'ADD_TO_CART', payload: item })
     try {
       const payload: Record<string, unknown> = { bundle: item.id, quantity: item.quantity }
-      const wasteToSend = isFiniteNumber(impact?.avoided_waste_kg)
-        ? impact!.avoided_waste_kg
-        : (Number(item.total_avoided_waste_kg) || 0)
-      const co2ToSend = isFiniteNumber(impact?.avoided_co2_kg)
-        ? impact!.avoided_co2_kg
-        : (Number(item.total_avoided_co2_kg) || 0)
-
-      if (isFiniteNumber(wasteToSend)) payload.avoided_waste_kg = wasteToSend
-      if (isFiniteNumber(co2ToSend)) payload.avoided_co2_kg = co2ToSend
+      if (isFiniteNumber(impact?.avoided_waste_kg)) payload.avoided_waste_kg = impact!.avoided_waste_kg
+      if (isFiniteNumber(impact?.avoided_co2_kg)) payload.avoided_co2_kg = impact!.avoided_co2_kg
       if (item.producerName) payload.producer_name = item.producerName
-
       await http.post('api/cart/items/', payload, {
         headers: { 'Content-Type': 'application/json', ...(withCartHeaders().headers || {}) },
       })
@@ -299,10 +306,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const updateQuantity: CartContextType['updateQuantity'] = async (bundleId, quantity, impact) => {
     const next = Math.max(1, quantity)
-    const prevItem = state.items.find(i => i.id === bundleId)
-    const prev = prevItem?.quantity ?? 1
-
-    // Optimistic: adjust qty and recompute totals locally
+    const prev = state.items.find(i => i.id === bundleId)?.quantity ?? 1
     dispatch({ type: 'UPDATE_QUANTITY', payload: { id: bundleId, quantity: next } })
 
     try {
@@ -313,28 +317,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
         dispatch({ type: 'REPLACE_CART', payload: { items: fresh } })
         serverItemId = fresh.find(i => i.id === bundleId)?.serverItemId
       }
-
-      const perUnitWaste = prevItem && prevItem.quantity > 0 ? (prevItem.total_avoided_waste_kg / prevItem.quantity) : 0
-      const perUnitCO2 = prevItem && prevItem.quantity > 0 ? (prevItem.total_avoided_co2_kg / prevItem.quantity) : 0
-      const totalWaste = isFiniteNumber(impact?.avoided_waste_kg)
-        ? impact!.avoided_waste_kg!
-        : perUnitWaste * next
-      const totalCO2 = isFiniteNumber(impact?.avoided_co2_kg)
-        ? impact!.avoided_co2_kg!
-        : perUnitCO2 * next
-
       if (serverItemId) {
+        const current = state.items.find(i => i.id === bundleId)
         const body: Record<string, unknown> = { quantity: next }
-        if (isFiniteNumber(totalWaste)) body.avoided_waste_kg = totalWaste
-        if (isFiniteNumber(totalCO2)) body.avoided_co2_kg = totalCO2
-        if (prevItem?.producerName) body.producer_name = prevItem.producerName
+        if (isFiniteNumber(impact?.avoided_waste_kg)) body.avoided_waste_kg = impact!.avoided_waste_kg
+        if (isFiniteNumber(impact?.avoided_co2_kg)) body.avoided_co2_kg = impact!.avoided_co2_kg
+        if (current?.producerName) body.producer_name = current.producerName
         await http.patch(`api/cart/item/${serverItemId}/`, body, {
           headers: { 'Content-Type': 'application/json', ...(withCartHeaders().headers || {}) },
         })
       } else {
         const payload: Record<string, unknown> = { bundle: bundleId, quantity: next }
-        if (isFiniteNumber(totalWaste)) payload.avoided_waste_kg = totalWaste
-        if (isFiniteNumber(totalCO2)) payload.avoided_co2_kg = totalCO2
+        if (isFiniteNumber(impact?.avoided_waste_kg)) payload.avoided_waste_kg = impact!.avoided_waste_kg
+        if (isFiniteNumber(impact?.avoided_co2_kg)) payload.avoided_co2_kg = impact!.avoided_co2_kg
         await http.post('api/cart/items/', payload, {
           headers: { 'Content-Type': 'application/json', ...(withCartHeaders().headers || {}) },
         })

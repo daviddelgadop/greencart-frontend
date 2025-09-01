@@ -145,6 +145,7 @@ type SortField =
   | 'customer_rating'
 
 export default function OrdersTab() {
+  const [loading, setLoading] = useState(true)
   const [orders, setOrders] = useState<Order[]>([])
   const [search, setSearch] = useState('')
   const [sortField, setSortField] = useState<SortField>('')
@@ -156,8 +157,13 @@ export default function OrdersTab() {
   }, [])
 
   const fetchOrders = async () => {
-    const data = await http.get<Order[]>('/api/producer/orders')
-    setOrders(Array.isArray(data) ? data : [])
+    setLoading(true)   
+    try {
+      const data = await http.get<Order[]>('/api/producer/orders')
+      setOrders(Array.isArray(data) ? data : [])
+    } finally {
+      setLoading(false) 
+    }
   }
 
   const toggleSort = (field: SortField) => {
@@ -296,7 +302,9 @@ export default function OrdersTab() {
       </div>
 
       <div className="md:hidden space-y-3">
-        {filtered.length === 0 ? (
+        {loading ? (
+          <p className="text-gray-500 px-2">Chargement des commandes…</p>
+        ) : filtered.length === 0 ? (
           <p className="text-gray-500 px-2">Aucune commande trouvée.</p>
         ) : (
           filtered.map(o => {

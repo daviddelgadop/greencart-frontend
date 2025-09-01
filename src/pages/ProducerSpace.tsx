@@ -1,4 +1,3 @@
-// src/ProducerDashboard.tsx
 import React from 'react'
 import { NavLink, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import {

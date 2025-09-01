@@ -36,8 +36,8 @@ type SubTab =
 type Bucket = 'day' | 'week' | 'month'
 type ViewMode = 'table' | 'chart' | 'both'
 
-const DASHBOARD_IS_PRODUCER = import.meta.env.VITE_DASHBOARD_PRODUCER === 'true'
-const BASE = DASHBOARD_IS_PRODUCER ? '/api/admin/analytics' : '/api/producer/analytics'
+const DASHBOARD_IS_ADMIN = import.meta.env.VITE_DASHBOARD_ADMIN === 'true'
+const BASE = DASHBOARD_IS_ADMIN ? '/api/admin/analytics' : '/api/producer/analytics'
 
 
 const asNum = (v: any, d = 0) => (v == null || v === '' || isNaN(Number(v)) ? d : Number(v))
@@ -151,7 +151,7 @@ function riskWordFR(level?: string | null) {
   return '—'
 }
 
-const hasProducerCol = ! DASHBOARD_IS_PRODUCER
+const hasProducerCol = ! DASHBOARD_IS_ADMIN
 const cs = (n: number) => n - (hasProducerCol ? 0 : 1)
 
 
@@ -338,7 +338,7 @@ function summarizeFilters(filters: MultiFilterState, displayNames: Record<string
   return parts.join(' • ')
 }
 
-export default function ProducerDashboardTab() {
+export default function AdminDashboardTab() {
   const { user } = useAuth()
 
   const [tab, setTab] = useState<SubTab>('sales')

@@ -15,16 +15,15 @@ export default {
         'dark-green': '#508433',
         'medium-brown': '#866545',
         'dark-brown': '#422a19',
-        // ✅ VERTS ACCESSIBLES AJOUTÉS
-        'green': {
-          700: '#2F855A',
-          800: '#276749',
-        }
       },
       animation: {
         'fade-in': 'fadeIn 0.5s ease-in-out',
         'slide-up': 'slideUp 0.3s ease-out',
       },
+    },
+  },
+  plugins: [],
+}
     },
   },
   plugins: [],

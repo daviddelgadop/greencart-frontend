@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://ias-b3-4-lyon-g4.fr/sitemap.xml

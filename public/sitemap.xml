@@ -1,60 +1,58 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-
   <!-- ACCUEIL -->
   <url>
     <loc>https://ias-b3-4-lyon-g4.fr/</loc>
-    <lastmod>2025-12-01</lastmod>
-    <changefreq>daily</changefreq>
+    <lastmod>2025-01-14</lastmod>
+    <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
-
+  
   <!-- BOUTIQUE -->
   <url>
     <loc>https://ias-b3-4-lyon-g4.fr/boutique/</loc>
-    <lastmod>2025-01-15</lastmod>
+    <lastmod>2025-01-14</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
+    <priority>0.8</priority>
   </url>
-
+  
   <!-- PRODUCTEURS -->
   <url>
     <loc>https://ias-b3-4-lyon-g4.fr/producteurs/</loc>
-    <lastmod>2025-01-15</lastmod>
+    <lastmod>2025-01-14</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
+    <priority>0.8</priority>
   </url>
-
+  
   <!-- INSCRIPTION PRODUCTEURS -->
   <url>
     <loc>https://ias-b3-4-lyon-g4.fr/producteurs/inscription/</loc>
-    <lastmod>2025-01-15</lastmod>
+    <lastmod>2025-01-14</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.7</priority>
   </url>
-
+  
   <!-- À PROPOS -->
   <url>
     <loc>https://ias-b3-4-lyon-g4.fr/a-propos/</loc>
     <lastmod>2025-01-10</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
+    <priority>0.6</priority>
   </url>
-
+  
   <!-- BLOG -->
   <url>
     <loc>https://ias-b3-4-lyon-g4.fr/blog/</loc>
-    <lastmod>2025-01-15</lastmod>
+    <lastmod>2025-01-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
-
+  
   <!-- CONTACT -->
   <url>
     <loc>https://ias-b3-4-lyon-g4.fr/contact/</loc>
     <lastmod>2025-01-05</lastmod>
-    <changefreq>yearly</changefreq>
-    <priority>0.6</priority>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
   </url>
-
 </urlset>

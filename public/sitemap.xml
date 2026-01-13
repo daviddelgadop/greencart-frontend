@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  
+
   <!-- ACCUEIL -->
   <url>
     <loc>https://ias-b3-4-lyon-g4.fr/</loc>
@@ -8,7 +8,7 @@
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
-  
+
   <!-- BOUTIQUE -->
   <url>
     <loc>https://ias-b3-4-lyon-g4.fr/boutique/</loc>
@@ -16,7 +16,7 @@
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
-  
+
   <!-- PRODUCTEURS -->
   <url>
     <loc>https://ias-b3-4-lyon-g4.fr/producteurs/</loc>
@@ -24,7 +24,7 @@
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
-  
+
   <!-- INSCRIPTION PRODUCTEURS -->
   <url>
     <loc>https://ias-b3-4-lyon-g4.fr/producteurs/inscription/</loc>
@@ -32,7 +32,7 @@
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
-  
+
   <!-- À PROPOS -->
   <url>
     <loc>https://ias-b3-4-lyon-g4.fr/a-propos/</loc>
@@ -40,7 +40,7 @@
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
-  
+
   <!-- BLOG -->
   <url>
     <loc>https://ias-b3-4-lyon-g4.fr/blog/</loc>
@@ -48,7 +48,7 @@
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
-  
+
   <!-- CONTACT -->
   <url>
     <loc>https://ias-b3-4-lyon-g4.fr/contact/</loc>
@@ -56,5 +56,5 @@
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
-  
+
 </urlset>

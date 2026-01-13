@@ -1,3 +1,9 @@
 User-agent: *
+Disallow: /wp-admin/
+Disallow: /wp-login.php
+Disallow: /producteurs/inscription/
+
 Allow: /
+
 Sitemap: https://ias-b3-4-lyon-g4.fr/sitemap.xml
+

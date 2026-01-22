@@ -1,40 +1,43 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-
   <url>
     <loc>https://ias-b3-4-lyon-g4.fr/</loc>
-    <lastmod>2026-01-13</lastmod>
+    <lastmod>2026-01-22</lastmod>
   </url>
-
   <url>
-    <loc>https://ias-b3-4-lyon-g4.fr/boutique/</loc>
-    <lastmod>2026-01-13</lastmod>
+    <loc>https://ias-b3-4-lyon-g4.fr/shop</loc>
+    <lastmod>2026-01-22</lastmod>
   </url>
-
   <url>
-    <loc>https://ias-b3-4-lyon-g4.fr/producteurs/</loc>
-    <lastmod>2026-01-13</lastmod>
+    <loc>https://ias-b3-4-lyon-g4.fr/producers</loc>
+    <lastmod>2026-01-22</lastmod>
   </url>
-
   <url>
-    <loc>https://ias-b3-4-lyon-g4.fr/producteurs/inscription/</loc>
-    <lastmod>2026-01-13</lastmod>
+    <loc>https://ias-b3-4-lyon-g4.fr/blog</loc>
+    <lastmod>2026-01-22</lastmod>
   </url>
-
   <url>
-    <loc>https://ias-b3-4-lyon-g4.fr/a-propos/</loc>
-    <lastmod>2026-01-13</lastmod>
+    <loc>https://ias-b3-4-lyon-g4.fr/contact</loc>
+    <lastmod>2026-01-22</lastmod>
   </url>
-
   <url>
-    <loc>https://ias-b3-4-lyon-g4.fr/blog/</loc>
-    <lastmod>2026-01-13</lastmod>
+    <loc>https://ias-b3-4-lyon-g4.fr/about</loc>
+    <lastmod>2026-01-22</lastmod>
   </url>
-
   <url>
-    <loc>https://ias-b3-4-lyon-g4.fr/contact/</loc>
-    <lastmod>2026-01-13</lastmod>
+    <loc>https://ias-b3-4-lyon-g4.fr/login</loc>
+    <lastmod>2026-01-22</lastmod>
   </url>
-
+  <url>
+    <loc>https://ias-b3-4-lyon-g4.fr/register</loc>
+    <lastmod>2026-01-22</lastmod>
+  </url>
+  <url>
+    <loc>https://ias-b3-4-lyon-g4.fr/privacy</loc>
+    <lastmod>2026-01-22</lastmod>
+  </url>
+  <url>
+    <loc>https://ias-b3-4-lyon-g4.fr/terms</loc>
+    <lastmod>2026-01-22</lastmod>
+  </url>
 </urlset>
-

@@ -1,4 +1,4 @@
-importimport Header from './Header'
+import Header from './Header'
 import Footer from './Footer'
 // import CookieConsent from '../CookieConsent'
 
@@ -23,5 +23,4 @@ export default function Layout({ children }: LayoutProps) {
       */}
     </div>
   )
-
 }

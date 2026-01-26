@@ -60,7 +60,8 @@ export default function Home() {
   }, [bundles]);
 
   return (
-    <main className="min-h-screen">
+    <main className="min-h-screen pt-32">
+
       {/* HERO SECTION - STRUCTURE HN CORRECTE */}
       <section className="bg-gradient-to-r from-green-800 to-green-700 text-white pt-24 pb-20">
         <div className="max-w-6xl mx-auto px-6">

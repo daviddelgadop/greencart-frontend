@@ -59,24 +59,25 @@ export default function Home() {
   }, [bundles]);
 
   return (
-    <main className="min-h-screen">
+  <main className="min-h-screen pt-24">
 
-      {/* HERO SEO */}
-      <section className="bg-green-900 text-white py-20">
-        <div className="max-w-6xl mx-auto px-6">
+    {/* HERO SEO */}
+    <section className="bg-green-900 text-white py-20">
+      <div className="max-w-6xl mx-auto px-6">
 
-          <h1 className="text-4xl md:text-6xl font-bold mb-6">
-            Produits locaux anti-gaspillage – GreenCart
-          </h1>
+        <h1 className="text-4xl md:text-6xl font-bold mb-6">
+          Produits locaux anti-gaspillage – GreenCart
+        </h1>
 
-          <h2 className="text-2xl md:text-3xl font-semibold mb-4">
-            Sauvons ensemble les produits locaux et luttons contre le gaspillage alimentaire
-          </h2>
+        <h2 className="text-2xl md:text-3xl font-semibold mb-4">
+          Sauvons ensemble les produits locaux et luttons contre le gaspillage alimentaire
+        </h2>
 
-          <p className="text-lg md:text-xl mb-8 max-w-3xl">
-            Découvrez des produits locaux de qualité à prix réduits jusqu’à 40 %. 
-            Soutenez les producteurs et participez activement à la lutte contre le gaspillage alimentaire.
-          </p>
+        <p className="text-lg md:text-xl mb-8 max-w-3xl">
+          Découvrez des produits locaux de qualité à prix réduits jusqu’à 40 %. 
+          Soutenez les producteurs et participez activement à la lutte contre le gaspillage alimentaire.
+        </p>
+
 
           <div className="flex gap-4 flex-wrap">
             <Link

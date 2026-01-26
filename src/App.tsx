@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react'
-import CookieConsent from './components/CookieConsent'
+import React from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { CartProvider } from './contexts/CartContext'
 import { AuthProvider } from './contexts/AuthContext'
@@ -10,6 +9,10 @@ import 'react-toastify/dist/ReactToastify.css'
 import { Toaster } from 'react-hot-toast'
 import ScrollToTop from './components/ScrollToTop'
 
+// 🔥 NOUVEAU BANNIÈRE COOKIES RGPD
+import CookieBanner from './components/CookieBanner'
+
+// Pages
 import Home from './pages/Home'
 import About from './pages/About'
 import Shop from './pages/Shop'
@@ -30,25 +33,12 @@ import SiteMap from './pages/SiteMap'
 import BundleDetail from './pages/BundleDetail'
 import Checkout from './pages/Checkout'
 import Confirmation from './pages/Confirmation'
-import ProducerPublic from './pages/ProducerPublic';
-import ProducersCatalog from './pages/ProducersCatalog';
-import BlogArticleDetail from './pages/BlogArticleDetail';
+import ProducerPublic from './pages/ProducerPublic'
+import ProducersCatalog from './pages/ProducersCatalog'
+import BlogArticleDetail from './pages/BlogArticleDetail'
 import ForgotPassword from './pages/ForgotPassword'
 
 function App() {
-  const [showCookieConsent, setShowCookieConsent] = useState(
-    () => localStorage.getItem('cookieConsent') !== 'true'
-  )
-  
-  useEffect(() => {
-    console.log('cookieConsent:', localStorage.getItem('cookieConsent'))
-  }, [])
-
-  const handleCookieAccept = () => {
-    localStorage.setItem('cookieConsent', 'true')
-    setShowCookieConsent(false)
-  }
-
   return (
     <AuthProvider>
       <CartProvider>
@@ -78,7 +68,6 @@ function App() {
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ForgotPassword />} />
 
-
                 <Route
                   path="/account/*"
                   element={
@@ -87,6 +76,7 @@ function App() {
                     </PrivateRoute>
                   }
                 />
+
                 <Route
                   path="/producer/*"
                   element={
@@ -95,6 +85,7 @@ function App() {
                     </PrivateRoute>
                   }
                 />
+
                 <Route
                   path="/admin/*"
                   element={
@@ -108,6 +99,7 @@ function App() {
               </Routes>
             </Layout>
 
+            {/* Notifications */}
             <Toaster position="top-center" />
             <ToastContainer
               position="top-center"
@@ -123,7 +115,8 @@ function App() {
               className="text-sm"
             />
 
-            {showCookieConsent && <CookieConsent onAccept={handleCookieAccept} />}
+            {/* 🍪 Nouveau bandeau cookies RGPD */}
+            <CookieBanner />
           </ScrollToTop>
         </Router>
       </CartProvider>

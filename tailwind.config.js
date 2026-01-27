@@ -1,3 +1,4 @@
+// tailwind.config.js
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
@@ -7,24 +8,18 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        'poppins': ['Poppins', 'sans-serif'],
+        sans: ['Inter', 'system-ui', 'sans-serif'],
       },
       colors: {
-        // Couleurs accessibles (bon contraste)
-        'green': {
-          700: '#2F855A',  // ✅ Accessible sur blanc
-          800: '#276749',  // ✅ Accessible sur blanc
-          900: '#22543D',  // ✅ Accessible sur blanc
-        },
-        'amber': {
-          50: '#FFFBEB',
-          100: '#FEF3C7',
-          400: '#FBBF24',
-          500: '#F59E0B',  // ✅ Accessible sur blanc
-          600: '#D97706',  // ✅ Accessible sur blanc
-          700: '#B45309',  // ✅ Accessible sur blanc
-          800: '#92400E',  // ✅ Accessible sur blanc
-        }
+        // ✅ Couleurs exactes de votre maquette
+        'pale-yellow': '#FFF0B1',
+        'orange-beige': '#D79B65',
+        'dark-green': '#508433',
+        'medium-brown': '#866545',
+        'dark-brown': '#422A19',
+      },
+      animation: {
+        'fade-in': 'fadeIn 0.6s ease-out',
       },
     },
   },

@@ -6,9 +6,6 @@ export default {
   ],
   theme: {
     extend: {
-      fontFamily: {
-        poppins: ['Poppins', 'sans-serif'],
-      },
       colors: {
         "gc-green-dark": "#2E7D32",
         "gc-green": "#2E7D32",
@@ -19,19 +16,8 @@ export default {
         "gc-text-dark": "#0B3D2E",
         "gc-text-light": "#FFFFFF",
       },
-      animation: {
-        "fade-in": "fadeIn 0.5s ease-in-out",
-        "slide-up": "slideUp 0.3s ease-out",
-      },
-      keyframes: {
-        fadeIn: {
-          "0%": { opacity: "0" },
-          "100%": { opacity: "1" },
-        },
-        slideUp: {
-          "0%": { transform: "translateY(100%)" },
-          "100%": { transform: "translateY(0)" },
-        },
+      fontFamily: {
+        poppins: ['Poppins', 'sans-serif'],
       },
     },
   },

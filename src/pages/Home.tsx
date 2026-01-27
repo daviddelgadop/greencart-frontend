@@ -79,21 +79,21 @@ export default function Home() {
     <div className="min-h-screen">
 
       {/* HERO */}
-      <section className="relative bg-gradient-to-r from-dark-green to-medium-brown text-pale-yellow py-20">
+      <section className="relative bg-gradient-to-r from-green-900 to-amber-900 text-amber-50 py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div className="animate-fade-in">
+            <div className="opacity-0 animate-fadeIn">
               <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
-                Sauvons ensemble nos <span className="text-orange-beige"> produits locaux</span>
+                Sauvons ensemble nos <span className="text-amber-400"> produits locaux</span>
               </h1>
-              <p className="text-xl mb-8 text-pale-yellow/90">
+              <p className="text-xl mb-8 text-amber-100">
                 Découvrez des produits de qualité à prix réduits, soutenez vos producteurs locaux et participez à la lutte contre le gaspillage alimentaire.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link
                   to="/shop"
-                  className="bg-orange-beige text-dark-brown px-8 py-4 rounded-full font-semibold text-lg hover:bg-orange-beige/90 transition-colors flex items-center justify-center group"
+                  className="bg-amber-400 text-amber-900 px-8 py-4 rounded-full font-semibold text-lg hover:bg-amber-500 transition-colors flex items-center justify-center group shadow-lg"
                 >
                   Commander dès maintenant
                   <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -101,22 +101,24 @@ export default function Home() {
 
                 <Link
                   to="/about"
-                  className="border-2 border-pale-yellow text-pale-yellow px-8 py-4 rounded-full font-semibold text-lg hover:bg-pale-yellow hover:text-dark-green transition-colors text-center"
+                  className="border-2 border-amber-50 text-amber-50 px-8 py-4 rounded-full font-semibold text-lg hover:bg-amber-50 hover:text-green-900 transition-colors text-center shadow"
                 >
                   Découvrir notre mission
                 </Link>
               </div>
             </div>
 
-            <div className="relative animate-slide-up">
+            <div className="relative opacity-0 animate-slideUp">
               <img
                 src="/Home.png"
-                alt="Produits locaux frais"
+                alt="Produits locaux frais - Panier de fruits et légumes de saison"
                 className="rounded-2xl shadow-2xl w-full"
+                width={600}
+                height={400}
               />
-              <div className="absolute -bottom-6 -left-6 bg-pale-yellow text-dark-green p-4 rounded-xl shadow-lg">
+              <div className="absolute -bottom-6 -left-6 bg-amber-50 text-green-900 p-4 rounded-xl shadow-lg">
                 <div className="flex items-center space-x-2">
-                  <TrendingDown className="w-6 h-6 text-dark-green" />
+                  <TrendingDown className="w-6 h-6 text-green-900" />
                   <div>
                     <p className="font-bold text-lg">-40%</p>
                     <p className="text-sm">en moyenne</p>
@@ -124,7 +126,6 @@ export default function Home() {
                 </div>
               </div>
             </div>
-
           </div>
         </div>
       </section>
@@ -132,43 +133,46 @@ export default function Home() {
       {/* IMPACT */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-3xl font-bold text-center mb-12 text-green-900">
+            Notre impact positif
+          </h2>
+          
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-
-            <div className="animate-slide-up">
-              <div className="bg-dark-green text-pale-yellow w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="opacity-0 animate-slideUp [animation-delay:100ms]">
+              <div className="bg-green-900 text-amber-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-md">
                 <Leaf className="w-8 h-8" />
               </div>
-              <h3 className="text-3xl font-bold text-dark-green mb-2">1,000+</h3>
-              <p className="text-gray-600">Tonnes sauvées du gaspillage</p>
+              <h3 className="text-3xl font-bold text-green-900 mb-2">1,000+</h3>
+              <p className="text-gray-700 font-medium">Tonnes sauvées du gaspillage</p>
             </div>
 
-            <div className="animate-slide-up">
-              <div className="bg-orange-beige text-white w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="opacity-0 animate-slideUp [animation-delay:200ms]">
+              <div className="bg-amber-400 text-white w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-md">
                 <Users className="w-8 h-8" />
               </div>
-              <h3 className="text-3xl font-bold text-dark-green mb-2">30+</h3>
-              <p className="text-gray-600">Producteurs partenaires</p>
+              <h3 className="text-3xl font-bold text-green-900 mb-2">30+</h3>
+              <p className="text-gray-700 font-medium">Producteurs partenaires</p>
             </div>
 
-            <div className="animate-slide-up">
-              <div className="bg-medium-brown text-pale-yellow w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="opacity-0 animate-slideUp [animation-delay:300ms]">
+              <div className="bg-amber-800 text-amber-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-md">
                 <ShoppingCart className="w-8 h-8" />
               </div>
-              <h3 className="text-3xl font-bold text-dark-green mb-2">2,000+</h3>
-              <p className="text-gray-600">Clients satisfaits</p>
+              <h3 className="text-3xl font-bold text-green-900 mb-2">2,000+</h3>
+              <p className="text-gray-700 font-medium">Clients satisfaits</p>
             </div>
-
           </div>
         </div>
       </section>
 
       {/* OFFRES */}
-      <section className="py-20 bg-pale-yellow/30">
+      <section className="py-20 bg-amber-50/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-dark-green mb-4">Offres du moment</h2>
-            <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+            <h2 className="text-3xl md:text-4xl font-bold text-green-900 mb-4">
+              Offres du moment
+            </h2>
+            <p className="text-gray-700 text-lg max-w-2xl mx-auto">
               Découvrez nos meilleures offres sur des produits de qualité à prix réduits
             </p>
           </div>
@@ -180,7 +184,9 @@ export default function Home() {
               ))}
             </div>
           ) : featured.length === 0 ? (
-            <div className="text-center text-gray-500 py-16">Aucune offre disponible pour le moment</div>
+            <div className="text-center text-gray-600 py-16 bg-white rounded-2xl shadow-sm">
+              <p className="text-lg font-medium">Aucune offre disponible pour le moment</p>
+            </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {featured.map(b => (
@@ -192,13 +198,42 @@ export default function Home() {
           <div className="text-center mt-12">
             <Link
               to="/shop"
-              className="bg-dark-green text-pale-yellow px-8 py-4 rounded-full font-semibold text-lg hover:bg-dark-green/90 transition-colors inline-flex items-center group"
+              className="bg-green-900 hover:bg-green-800 text-amber-50 px-8 py-4 rounded-full font-semibold text-lg 
+                         transition-colors inline-flex items-center group shadow-lg"
             >
               Voir tous les produits
               <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>
+        </div>
+      </section>
 
+      {/* TÉMOIGNAGES */}
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-3xl md:text-4xl font-bold text-center text-green-900 mb-12">
+            Ce que disent nos clients
+          </h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {testimonials.map((testimonial, index) => (
+              <div 
+                key={index} 
+                className="bg-amber-50/50 rounded-2xl p-6 shadow-lg border border-amber-100"
+              >
+                <div className="flex items-center mb-4">
+                  {[...Array(5)].map((_, i) => (
+                    <Star 
+                      key={i} 
+                      className="w-5 h-5 text-amber-400 fill-amber-400" 
+                    />
+                  ))}
+                </div>
+                <p className="text-gray-700 text-lg italic mb-4">"{testimonial.text}"</p>
+                <p className="font-semibold text-green-900">{testimonial.name}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -206,40 +241,34 @@ export default function Home() {
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-
             <div>
-              <h2 className="text-3xl md:text-4xl font-bold text-dark-green mb-6">
+              <h2 className="text-3xl md:text-4xl font-bold text-green-900 mb-6">
                 Notre mission : zéro gaspillage
               </h2>
 
-              <p className="text-gray-600 text-lg mb-6">
+              <p className="text-gray-700 text-lg mb-6">
                 GreenCart connecte les consommateurs conscients avec les producteurs locaux pour donner une seconde vie aux produits alimentaires de qualité.
               </p>
 
               <ul className="space-y-4 mb-8">
-                <li className="flex items-center space-x-3">
-                  <div className="w-6 h-6 bg-dark-green rounded-full flex items-center justify-center">
-                    <div className="w-2 h-2 bg-pale-yellow rounded-full"></div>
-                  </div>
-                  <span className="text-gray-700">Produits locaux et de saison</span>
-                </li>
-                <li className="flex items-center space-x-3">
-                  <div className="w-6 h-6 bg-dark-green rounded-full flex items-center justify-center">
-                    <div className="w-2 h-2 bg-pale-yellow rounded-full"></div>
-                  </div>
-                  <span className="text-gray-700">Prix réduits jusqu'à 50%</span>
-                </li>
-                <li className="flex items-center space-x-3">
-                  <div className="w-6 h-6 bg-dark-green rounded-full flex items-center justify-center">
-                    <div className="w-2 h-2 bg-pale-yellow rounded-full"></div>
-                  </div>
-                  <span className="text-gray-700">Soutien aux petits producteurs</span>
-                </li>
+                {[
+                  "Produits locaux et de saison",
+                  "Prix réduits jusqu'à 50%",
+                  "Soutien aux petits producteurs"
+                ].map((item, i) => (
+                  <li key={i} className="flex items-center space-x-3">
+                    <div className="w-6 h-6 bg-green-900 rounded-full flex items-center justify-center">
+                      <div className="w-2 h-2 bg-amber-50 rounded-full"></div>
+                    </div>
+                    <span className="text-gray-800 font-medium">{item}</span>
+                  </li>
+                ))}
               </ul>
 
               <Link
                 to="/about"
-                className="bg-orange-beige text-dark-brown px-6 py-3 rounded-full font-semibold hover:bg-orange-beige/90 transition-colors inline-flex items-center group"
+                className="bg-amber-400 hover:bg-amber-500 text-amber-900 px-6 py-3 rounded-full font-semibold 
+                           transition-colors inline-flex items-center group shadow-md"
               >
                 En savoir plus
                 <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -249,46 +278,120 @@ export default function Home() {
             <div>
               <img
                 src="https://images.pexels.com/photos/1327838/pexels-photo-1327838.jpeg?auto=compress&cs=tinysrgb&w=600"
-                alt="Producteur local"
+                alt="Producteur local travaillant dans son champ avec des légumes frais"
                 className="rounded-2xl shadow-lg w-full"
+                width={600}
+                height={400}
+                loading="lazy"
               />
             </div>
-
           </div>
         </div>
       </section>
 
       {/* CTA FINAL */}
-      <section className="py-20 bg-dark-green text-pale-yellow">
+      <section className="py-20 bg-green-900 text-amber-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-
           <h2 className="text-3xl md:text-4xl font-bold mb-6">
             Rejoignez le mouvement anti-gaspillage
           </h2>
 
-          <p className="text-pale-yellow/90 text-lg mb-8 max-w-2xl mx-auto">
+          <p className="text-amber-100 text-lg mb-8 max-w-2xl mx-auto">
             Inscrivez-vous dès aujourd'hui et recevez 10€ de réduction sur votre première commande
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               to="/register"
-              className="bg-orange-beige text-dark-brown px-8 py-4 rounded-full font-semibold text-lg hover:bg-orange-beige/90 transition-colors"
+              className="bg-amber-400 hover:bg-amber-500 text-amber-900 px-8 py-4 rounded-full font-semibold text-lg 
+                         transition-colors shadow-lg"
             >
               Créer mon compte client
             </Link>
 
             <Link
               to="/register?type=producer"
-              className="border-2 border-pale-yellow text-pale-yellow px-8 py-4 rounded-full font-semibold text-lg hover:bg-pale-yellow hover:text-dark-green transition-colors"
+              className="border-2 border-amber-50 text-amber-50 px-8 py-4 rounded-full font-semibold text-lg 
+                         hover:bg-amber-50 hover:text-green-900 transition-colors shadow"
             >
               Devenir producteur partenaire
             </Link>
           </div>
-
         </div>
       </section>
 
+      {/* FOOTER */}
+      <footer className="bg-gray-900 text-gray-300 py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div>
+              <h3 className="text-amber-50 text-xl font-bold mb-4">GreenCart</h3>
+              <p className="text-gray-400">Luttons ensemble contre le gaspillage alimentaire en soutenant les producteurs locaux.</p>
+            </div>
+            
+            <div>
+              <h4 className="text-amber-50 font-semibold mb-4">Navigation</h4>
+              <ul className="space-y-2">
+                <li><Link to="/shop" className="hover:text-amber-400 transition-colors">Boutique</Link></li>
+                <li><Link to="/about" className="hover:text-amber-400 transition-colors">À propos</Link></li>
+                <li><Link to="/producers" className="hover:text-amber-400 transition-colors">Nos producteurs</Link></li>
+                <li><Link to="/blog" className="hover:text-amber-400 transition-colors">Blog</Link></li>
+              </ul>
+            </div>
+            
+            <div>
+              <h4 className="text-amber-50 font-semibold mb-4">Légal</h4>
+              <ul className="space-y-2">
+                <li><Link to="/privacy" className="hover:text-amber-400 transition-colors">Confidentialité</Link></li>
+                <li><Link to="/terms" className="hover:text-amber-400 transition-colors">Conditions d'utilisation</Link></li>
+                <li><Link to="/cookies" className="hover:text-amber-400 transition-colors">Cookies</Link></li>
+              </ul>
+            </div>
+            
+            <div>
+              <h4 className="text-amber-50 font-semibold mb-4">Contact</h4>
+              <p className="text-gray-400 mb-2">contact@greencart.fr</p>
+              <p className="text-gray-400">01 23 45 67 89</p>
+              <div className="flex space-x-4 mt-4">
+                <a href="#" className="text-gray-400 hover:text-amber-400 transition-colors">Facebook</a>
+                <a href="#" className="text-gray-400 hover:text-amber-400 transition-colors">Instagram</a>
+                <a href="#" className="text-gray-400 hover:text-amber-400 transition-colors">LinkedIn</a>
+              </div>
+            </div>
+          </div>
+          
+          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-500 text-sm">
+            <p>© {new Date().getFullYear()} GreenCart. Tous droits réservés.</p>
+          </div>
+        </div>
+      </footer>
+
+      {/* ANIMATIONS CSS */}
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        
+        @keyframes slideUp {
+          from { 
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to { 
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        .animate-fadeIn {
+          animation: fadeIn 0.8s ease-out forwards;
+        }
+        
+        .animate-slideUp {
+          animation: slideUp 0.8s ease-out forwards;
+        }
+      `}</style>
     </div>
   )
 }

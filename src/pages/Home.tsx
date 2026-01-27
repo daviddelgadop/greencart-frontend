@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Helmet } from 'react-helmet'
 import { ShoppingCart, Users, Leaf, TrendingDown, ArrowRight } from 'lucide-react'
 import BundleCard from '../components/BundleCard'
 import { http } from '../lib/api'
 
+// Types
 type City = { name: string; postal_code: string }
 type CompanyAddress = { city: City }
 type CompanyData = { name: string; address: CompanyAddress; certifications?: { code: string }[] }
@@ -71,12 +71,6 @@ export default function Home() {
   return (
     <div className="min-h-screen font-poppins">
 
-      {/* SEO */}
-      <Helmet>
-        <title>GreenCart - Produits locaux anti-gaspillage</title>
-        <meta name="description" content="Découvrez des produits locaux à prix réduits et réduisez le gaspillage alimentaire." />
-      </Helmet>
-
       {/* Bandeau cookies RGPD */}
       {showCookieBanner && (
         <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-dark-green text-pale-yellow p-4 rounded-lg shadow-lg flex flex-col sm:flex-row items-center gap-4 z-50">
@@ -102,8 +96,6 @@ export default function Home() {
       <section className="relative bg-gradient-to-r from-dark-green to-medium-brown text-pale-yellow py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-
-            {/* Texte Hero */}
             <div className="animate-fade-in">
               <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
                 Produits locaux anti-gaspillage – GreenCart
@@ -132,7 +124,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Image Hero */}
             <div className="relative animate-slide-up">
               <img
                 src="/Home.png"
@@ -149,7 +140,6 @@ export default function Home() {
                 </div>
               </div>
             </div>
-
           </div>
         </div>
       </section>

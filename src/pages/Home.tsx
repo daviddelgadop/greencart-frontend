@@ -52,28 +52,26 @@ export default function Home() {
     <div className="min-h-screen font-poppins">
       
       {/* ✅ SECTION HERO - UTILISE TAILWIND PERSONNALISÉ */}
-      <section className="relative bg-gc-green-dark text-white py-20">
-        <div className="max-w-7xl mx-auto px-6">
-          
-          {/* ✅ H1 */}
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
-            Produits locaux anti-gaspillage – GreenCart
-          </h1>
-          
-          {/* ✅ H2 */}
-          <h2 className="text-xl md:text-2xl lg:text-3xl font-semibold mb-8 text-green-100 leading-relaxed">
-            Sauvons ensemble les produits locaux et luttons contre le gaspillage alimentaire
-          </h2>
-          
-          {/* ✅ PARAGRAPHE */}
-          <div className="text-lg md:text-xl mb-10 text-green-50 max-w-3xl leading-relaxed">
-            <p className="mb-4">
-              Découvrez des produits locaux de qualité à prix réduits jusqu'à 40 %.
-            </p>
-            <p>
-              Soutenez les producteurs locaux et participez activement à la lutte contre le gaspillage alimentaire grâce à GreenCart.
-            </p>
-          </div>
+     <section className="relative bg-gc-green-dark text-white py-20">
+  <div className="max-w-7xl mx-auto px-6">
+    
+    <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
+      Produits locaux anti-gaspillage – GreenCart
+    </h1>
+
+    <h2 className="text-xl md:text-2xl lg:text-3xl font-semibold mb-8 text-gc-green-light leading-relaxed">
+      Sauvons ensemble les produits locaux et luttons contre le gaspillage alimentaire
+    </h2>
+
+    <div className="text-lg md:text-xl mb-10 text-gc-text-light max-w-3xl leading-relaxed">
+      <p className="mb-4">
+        Découvrez des produits locaux de qualité à prix réduits jusqu'à 40 %.
+      </p>
+      <p>
+        Soutenez les producteurs locaux et participez activement à la lutte contre le gaspillage alimentaire grâce à GreenCart.
+      </p>
+    </div>
+
           
           {/* ✅ BOUTONS - AVEC VOTRE PALETTE */}
           <div className="flex flex-col sm:flex-row gap-4">

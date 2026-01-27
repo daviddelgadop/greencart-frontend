@@ -1,4 +1,4 @@
-/** @type {import('tailwindcss').Config} */
+c est bon /** @type {import('tailwindcss').Config} */
 export default {
   content: [
     "./index.html",
@@ -7,61 +7,40 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        'poppins': ['Poppins', 'sans-serif'],
+        poppins: ['Poppins', 'sans-serif'],
       },
+
+      // 🎨 PALETTE ACCESSIBLE GREEN CART
       colors: {
-        // Votre palette personnalisée
-        'pale-yellow': '#fff0b1',
-        'orange-beige': '#d79b65',
-        'dark-green': '#508433',
-        'medium-brown': '#866545',
-        'dark-brown': '#422a19',
-        
-        // Palette verte étendue pour accessibilité
-        'green': {
-          50: '#f0fdf4',
-          100: '#dcfce7',
-          200: '#bbf7d0',
-          300: '#86efac',
-          400: '#4ade80',
-          500: '#22c55e',
-          600: '#16a34a',
-          700: '#15803d',  // ✅ Bon contraste
-          800: '#166534',  // ✅ Très bon contraste
-          900: '#14532d',
-        },
-        
-        // Palette orange pour les CTA
-        'orange': {
-          400: '#fb923c',
-          500: '#f97316',
-          600: '#ea580c',
-        }
+        // Couleurs principales accessibles
+        "gc-green-dark": "#0B3D2E",   // Fond HERO, CTA final
+        "gc-green": "#1E7A50",        // Accents
+        "gc-green-light": "#4FBF8A",  // Hover léger
+
+        "gc-beige": "#F4EEDC",        // Fond clair
+        "gc-orange": "#E89A3D",       // CTA principal
+        "gc-orange-dark": "#cf852f",  // Hover CTA
+
+        // Texte
+        "gc-text-dark": "#0B3D2E",
+        "gc-text-light": "#FFFFFF",
       },
+
+      // ✨ Animations
       animation: {
-        'fade-in': 'fadeIn 0.5s ease-in-out',
-        'slide-up': 'slideUp 0.3s ease-out',
-        'pulse-slow': 'pulse 3s infinite',
+        "fade-in": "fadeIn 0.5s ease-in-out",
+        "slide-up": "slideUp 0.3s ease-out",
       },
       keyframes: {
         fadeIn: {
-          '0%': { opacity: '0' },
-          '100%': { opacity: '1' },
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
         },
         slideUp: {
-          '0%': { transform: 'translateY(100%)' },
-          '100%': { transform: 'translateY(0)' },
-        }
+          "0%": { transform: "translateY(100%)" },
+          "100%": { transform: "translateY(0)" },
+        },
       },
-      // ✅ Pour l'accessibilité : contrastes garantis
-      backgroundColor: {
-        'accessible-green': '#15803d',
-        'accessible-orange': '#ea580c',
-      },
-      textColor: {
-        'accessible-dark': '#1a202c',
-        'accessible-light': '#f7fafc',
-      }
     },
   },
   plugins: [],

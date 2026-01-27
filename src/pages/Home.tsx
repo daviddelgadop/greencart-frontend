@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ShoppingCart, Users, Leaf, TrendingDown, ArrowRight, Star } from 'lucide-react'
+import { ShoppingCart, Plus, ArrowRight, Search, Menu, Heart } from 'lucide-react'
 import BundleCard from '../components/BundleCard'
 import { http } from '../lib/api'
 
@@ -32,6 +32,7 @@ type Bundle = {
 export default function Home() {
   const [bundles, setBundles] = useState<Bundle[]>([])
   const [loading, setLoading] = useState(true)
+  const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => {
     let alive = true
@@ -70,226 +71,250 @@ export default function Home() {
       .slice(0, 3)
   }, [bundles])
 
+  // Produits statiques pour la maquette
+  const staticProducts = [
+    { id: 1, name: "Pommes 1kg", price: "3,99€", originalPrice: "5,99€", discount: "-33%" },
+    { id: 2, name: "Oranges 1kg", price: "2,49€", originalPrice: "3,99€", discount: "-38%" },
+    { id: 3, name: "Légumes de saison", price: "4,99€", originalPrice: "7,99€", discount: "-38%" }
+  ]
+
   return (
-    <div className="min-h-screen">
-      {/* ✅ H1 CORRECT - SEO optimisé */}
-      <section className="relative bg-gradient-to-r from-green-800 to-amber-800 text-white py-16 md:py-24">
+    <div className="min-h-screen font-sans">
+      {/* HEADER - Comme dans la maquette */}
+      <header className="sticky top-0 z-50 bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div>
-              {/* ✅ H1 avec mot-clé principal */}
-              <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
-                Produits locaux anti-gaspillage – GreenCart
-              </h1>
-              
-              {/* ✅ H2 marketing */}
-              <h2 className="text-xl md:text-2xl lg:text-3xl font-semibold mb-8 text-amber-100 leading-relaxed">
-                Sauvons ensemble les produits locaux et luttons contre le gaspillage alimentaire
-              </h2>
-              
-              {/* ✅ Paragraphe d'introduction SEO */}
-              <div className="text-lg md:text-xl mb-10 text-amber-50 max-w-3xl leading-relaxed">
-                <p className="mb-4">
-                  Découvrez des produits locaux de qualité à prix réduits jusqu'à 40 %.
-                </p>
-                <p>
-                  Soutenez les producteurs locaux et participez activement à la lutte contre le gaspillage alimentaire grâce à GreenCart.
-                </p>
-              </div>
-              
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Link
-                  to="/shop"
-                  className="bg-amber-500 text-white px-8 py-4 rounded-full font-semibold text-lg hover:bg-amber-600 transition-colors flex items-center justify-center group shadow-lg"
-                >
-                  Commander dès maintenant
-                  <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </Link>
-                <Link
-                  to="/producers"
-                  className="border-2 border-white text-white px-8 py-4 rounded-full font-semibold text-lg hover:bg-white hover:text-green-900 transition-colors text-center shadow"
-                >
-                  Devenir producteur
-                </Link>
+          <div className="flex items-center justify-between h-16">
+            {/* Logo */}
+            <Link to="/" className="text-2xl font-bold text-[#508433]">
+              GreenCart
+            </Link>
+
+            {/* Barre de recherche (mobile hidden) */}
+            <div className="hidden md:flex flex-1 max-w-md mx-8">
+              <div className="relative w-full">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type="text"
+                  placeholder="Rechercher des produits..."
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#508433] focus:border-transparent"
+                />
               </div>
             </div>
-            
-            <div className="relative">
-              <img
-                src="/Home.png"
-                alt="Panier de produits locaux frais - Fruits et légumes de saison anti-gaspillage"
-                className="rounded-2xl shadow-2xl w-full"
-              />
-              <div className="absolute -bottom-6 -left-6 bg-white text-green-800 p-4 rounded-xl shadow-lg">
-                <div className="flex items-center space-x-2">
-                  <TrendingDown className="w-6 h-6 text-green-800" />
-                  <div>
-                    <p className="font-bold text-lg">-40%</p>
-                    <p className="text-sm">en moyenne</p>
-                  </div>
-                </div>
+
+            {/* Navigation desktop */}
+            <nav className="hidden md:flex items-center space-x-8">
+              <Link to="/about" className="text-gray-700 hover:text-[#508433] font-medium">À propos</Link>
+              <Link to="/shop" className="text-gray-700 hover:text-[#508433] font-medium">Boutique</Link>
+              <Link to="/producers" className="text-gray-700 hover:text-[#508433] font-medium">Producteurs</Link>
+              <Link to="/blog" className="text-gray-700 hover:text-[#508433] font-medium">Blog</Link>
+              <Link to="/contact" className="text-gray-700 hover:text-[#508433] font-medium">Contact</Link>
+              <Link to="/cart" className="relative">
+                <ShoppingCart className="w-6 h-6 text-[#508433]" />
+                <span className="absolute -top-2 -right-2 bg-[#508433] text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  3
+                </span>
+              </Link>
+            </nav>
+
+            {/* Menu mobile */}
+            <button 
+              className="md:hidden"
+              onClick={() => setMenuOpen(!menuOpen)}
+            >
+              <Menu className="w-6 h-6 text-gray-700" />
+            </button>
+          </div>
+
+          {/* Menu mobile déroulant */}
+          {menuOpen && (
+            <div className="md:hidden bg-white border-t">
+              <div className="px-2 pt-2 pb-3 space-y-1">
+                <Link to="/about" className="block px-3 py-2 text-gray-700 hover:bg-gray-50">À propos</Link>
+                <Link to="/shop" className="block px-3 py-2 text-gray-700 hover:bg-gray-50">Boutique</Link>
+                <Link to="/producers" className="block px-3 py-2 text-gray-700 hover:bg-gray-50">Producteurs</Link>
+                <Link to="/blog" className="block px-3 py-2 text-gray-700 hover:bg-gray-50">Blog</Link>
+                <Link to="/contact" className="block px-3 py-2 text-gray-700 hover:bg-gray-50">Contact</Link>
               </div>
+            </div>
+          )}
+        </div>
+      </header>
+
+      {/* HERO SECTION - Exactement comme la maquette */}
+      <section className="bg-gradient-to-b from-[#FFF0B1]/20 to-white py-12 md:py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            {/* Breadcrumb */}
+            <nav className="text-sm text-gray-600 mb-6">
+              <Link to="/" className="hover:text-[#508433]">Accueil</Link>
+            </nav>
+
+            {/* Titre principal */}
+            <h1 className="text-3xl md:text-5xl font-bold text-gray-900 mb-6 leading-tight">
+              Sauvons ensemble nos produits locaux – GreenCart
+            </h1>
+
+            {/* Sous-titre */}
+            <p className="text-lg md:text-xl text-gray-700 max-w-3xl mx-auto mb-10">
+              Découvrez des produits locaux de qualité à prix réduits jusqu'à 40%. Soutenez vos producteurs locaux et participez à la lutte contre le gaspillage alimentaire.
+            </p>
+
+            {/* Boutons */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
+              <Link
+                to="/shop"
+                className="bg-[#508433] hover:bg-[#3f6a29] text-white px-8 py-4 rounded-lg font-semibold text-lg transition-colors flex items-center shadow-md"
+              >
+                Commander dès maintenant
+                <ArrowRight className="ml-2 w-5 h-5" />
+              </Link>
+              <Link
+                to="/about"
+                className="bg-white hover:bg-gray-50 text-[#508433] border-2 border-[#508433] px-8 py-4 rounded-lg font-semibold text-lg transition-colors shadow-sm"
+              >
+                Découvrir notre mission
+              </Link>
+            </div>
+
+            {/* Statistique */}
+            <div className="inline-flex items-center bg-[#508433] text-[#FFF0B1] px-6 py-3 rounded-full">
+              <span className="text-2xl font-bold mr-2">1000+</span>
+              <span className="font-medium">Tonnes sauvées du gaspillage</span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ✅ H2 CORRECT - Hiérarchie respectée */}
-      <section className="py-16 md:py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-green-900">
-            Notre impact positif
-          </h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-            <div>
-              <div className="bg-green-800 text-white w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-md">
-                <Leaf className="w-8 h-8" />
-              </div>
-              <h3 className="text-3xl font-bold text-green-800 mb-2">1,000+</h3>
-              <p className="text-gray-700 font-medium">Tonnes sauvées du gaspillage</p>
-            </div>
-            
-            <div>
-              <div className="bg-amber-500 text-white w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-md">
-                <Users className="w-8 h-8" />
-              </div>
-              <h3 className="text-3xl font-bold text-green-800 mb-2">30+</h3>
-              <p className="text-gray-700 font-medium">Producteurs partenaires</p>
-            </div>
-            
-            <div>
-              <div className="bg-amber-700 text-white w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-md">
-                <ShoppingCart className="w-8 h-8" />
-              </div>
-              <h3 className="text-3xl font-bold text-green-800 mb-2">2,000+</h3>
-              <p className="text-gray-700 font-medium">Clients satisfaits</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ✅ H2 CORRECT */}
-      <section className="py-16 md:py-20 bg-amber-50">
+      {/* SECTION OFFRES - Comme la maquette */}
+      <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-green-900 mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
               Offres du moment
             </h2>
-            <p className="text-gray-700 text-lg max-w-2xl mx-auto">
-              Découvrez nos meilleures offres sur des produits de qualité à prix réduits
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Découvrez nos meilleures offres sur des produits de qualité à prix réduits.
             </p>
           </div>
 
-          {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="bg-white rounded-2xl shadow-lg p-6 animate-pulse h-[520px]" />
-              ))}
-            </div>
-          ) : featured.length === 0 ? (
-            <div className="text-center text-gray-600 py-16 bg-white rounded-2xl shadow-sm">
-              <p className="text-lg font-medium">Aucune offre disponible pour le moment</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {featured.map(b => (
-                <BundleCard key={b.id} bundle={b} viewMode="grid" />
-              ))}
-            </div>
-          )}
+          {/* Produits statiques comme dans la maquette */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            {staticProducts.map((product) => (
+              <div key={product.id} className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100 hover:shadow-xl transition-shadow">
+                <div className="p-6">
+                  {/* Badge de réduction */}
+                  <div className="inline-block bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-semibold mb-4">
+                    {product.discount}
+                  </div>
+                  
+                  {/* Nom du produit */}
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">{product.name}</h3>
+                  
+                  {/* Prix */}
+                  <div className="flex items-center mb-6">
+                    <span className="text-2xl font-bold text-[#508433]">{product.price}</span>
+                    <span className="ml-3 text-gray-400 line-through">{product.originalPrice}</span>
+                  </div>
+                  
+                  {/* Bouton Ajouter au panier */}
+                  <button className="w-full bg-[#508433] hover:bg-[#3f6a29] text-white font-semibold py-3 px-4 rounded-lg flex items-center justify-center transition-colors">
+                    <Plus className="w-5 h-5 mr-2" />
+                    Ajouter au panier
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
 
+          {/* Bouton "Voir tous les produits" */}
           <div className="text-center mt-12">
             <Link
               to="/shop"
-              className="bg-green-800 hover:bg-green-900 text-white px-8 py-4 rounded-full font-semibold text-lg transition-colors inline-flex items-center group shadow-lg"
+              className="inline-flex items-center text-[#508433] hover:text-[#3f6a29] font-semibold text-lg"
             >
               Voir tous les produits
-              <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="ml-2 w-5 h-5" />
             </Link>
           </div>
         </div>
       </section>
 
-      {/* ✅ H2 CORRECT */}
-      <section className="py-16 md:py-20 bg-white">
+      {/* SECTION MISSION - Comme la maquette */}
+      <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
-              <h2 className="text-3xl md:text-4xl font-bold text-green-900 mb-6">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
                 Notre mission : zéro gaspillage
               </h2>
-
-              <p className="text-gray-700 text-lg mb-6">
+              
+              <p className="text-lg text-gray-700 mb-8">
                 GreenCart connecte les consommateurs conscients avec les producteurs locaux pour donner une seconde vie aux produits alimentaires de qualité.
               </p>
-
+              
               <ul className="space-y-4 mb-8">
-                <li className="flex items-center space-x-3">
-                  <div className="w-6 h-6 bg-green-800 rounded-full flex items-center justify-center">
+                <li className="flex items-start">
+                  <div className="w-6 h-6 bg-[#508433] rounded-full flex-shrink-0 mt-1 mr-3 flex items-center justify-center">
                     <div className="w-2 h-2 bg-white rounded-full"></div>
                   </div>
                   <span className="text-gray-800 font-medium">Produits locaux et de saison</span>
                 </li>
-                <li className="flex items-center space-x-3">
-                  <div className="w-6 h-6 bg-green-800 rounded-full flex items-center justify-center">
+                <li className="flex items-start">
+                  <div className="w-6 h-6 bg-[#508433] rounded-full flex-shrink-0 mt-1 mr-3 flex items-center justify-center">
                     <div className="w-2 h-2 bg-white rounded-full"></div>
                   </div>
                   <span className="text-gray-800 font-medium">Prix réduits jusqu'à 50%</span>
                 </li>
-                <li className="flex items-center space-x-3">
-                  <div className="w-6 h-6 bg-green-800 rounded-full flex items-center justify-center">
+                <li className="flex items-start">
+                  <div className="w-6 h-6 bg-[#508433] rounded-full flex-shrink-0 mt-1 mr-3 flex items-center justify-center">
                     <div className="w-2 h-2 bg-white rounded-full"></div>
                   </div>
                   <span className="text-gray-800 font-medium">Soutien aux petits producteurs</span>
                 </li>
               </ul>
-
+              
               <Link
                 to="/about"
-                className="bg-amber-500 hover:bg-amber-600 text-white px-6 py-3 rounded-full font-semibold transition-colors inline-flex items-center group shadow-md"
+                className="inline-flex items-center text-[#508433] hover:text-[#3f6a29] font-semibold"
               >
                 En savoir plus
-                <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                <ArrowRight className="ml-2 w-4 h-4" />
               </Link>
             </div>
-
+            
             <div>
               <img
-                src="https://images.pexels.com/photos/1327838/pexels-photo-1327838.jpeg?auto=compress&cs=tinysrgb&w=1200"
-                alt="Producteur local travaillant dans son champ avec des légumes frais"
-                width={600}
-                height={400}
-                loading="lazy"
-                className="rounded-2xl shadow-lg w-full"
+                src="https://images.pexels.com/photos/1327838/pexels-photo-1327838.jpeg?auto=compress&cs=tinysrgb&w=800"
+                alt="Producteur local travaillant dans son champ"
+                className="rounded-xl shadow-lg w-full"
               />
             </div>
           </div>
         </div>
       </section>
 
-      {/* ✅ H2 CORRECT */}
-      <section className="py-16 md:py-20 bg-green-900 text-white">
+      {/* SECTION CTA - Comme la maquette */}
+      <section className="py-16 bg-[#866545] text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-6">
             Rejoignez le mouvement anti-gaspillage
           </h2>
-
-          <p className="text-gray-200 text-lg mb-8 max-w-2xl mx-auto">
+          
+          <p className="text-lg text-[#FFF0B1] mb-10 max-w-2xl mx-auto">
             Inscrivez-vous dès aujourd'hui et recevez 10€ de réduction sur votre première commande
           </p>
-
+          
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               to="/register"
-              className="bg-amber-500 hover:bg-amber-600 text-white px-8 py-4 rounded-full font-semibold text-lg transition-colors shadow-lg"
+              className="bg-[#D79B65] hover:bg-[#c58b55] text-[#422A19] px-8 py-4 rounded-lg font-semibold text-lg transition-colors shadow-md"
             >
               Créer mon compte client
             </Link>
-
+            
             <Link
               to="/register?type=producer"
-              className="border-2 border-white text-white px-8 py-4 rounded-full font-semibold text-lg hover:bg-white hover:text-green-900 transition-colors shadow"
+              className="bg-transparent hover:bg-white/10 text-white border-2 border-white px-8 py-4 rounded-lg font-semibold text-lg transition-colors"
             >
               Devenir producteur partenaire
             </Link>
@@ -297,50 +322,148 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ✅ FOOTER pour SEO */}
-      <footer className="bg-gray-900 text-gray-300 py-12">
+      {/* FOOTER - EXACTEMENT COMME LA MAQUETTE avec couleurs spécifiques */}
+      <footer className="bg-[#422A19] text-[#FFF0B1] py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div>
-              <h3 className="text-white text-xl font-bold mb-4">GreenCart</h3>
-              <p className="text-gray-400">Luttons ensemble contre le gaspillage alimentaire en soutenant les producteurs locaux.</p>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
             
+            {/* Colonne 1: Navigation */}
             <div>
-              <h4 className="text-white font-semibold mb-4">Navigation</h4>
-              <ul className="space-y-2">
-                <li><Link to="/shop" className="hover:text-amber-400 transition-colors">Boutique</Link></li>
-                <li><Link to="/about" className="hover:text-amber-400 transition-colors">À propos</Link></li>
-                <li><Link to="/producers" className="hover:text-amber-400 transition-colors">Nos producteurs</Link></li>
-                <li><Link to="/blog" className="hover:text-amber-400 transition-colors">Blog</Link></li>
+              <h4 className="text-white font-bold text-lg mb-6 uppercase tracking-wide">
+                Navigation
+              </h4>
+              <ul className="space-y-3">
+                <li>
+                  <Link 
+                    to="/about" 
+                    className="hover:text-white transition-colors duration-200 hover:pl-2 block"
+                  >
+                    À propos
+                  </Link>
+                </li>
+                <li>
+                  <Link 
+                    to="/shop" 
+                    className="hover:text-white transition-colors duration-200 hover:pl-2 block"
+                  >
+                    Boutique
+                  </Link>
+                </li>
+                <li>
+                  <Link 
+                    to="/producers" 
+                    className="hover:text-white transition-colors duration-200 hover:pl-2 block"
+                  >
+                    Producteurs
+                  </Link>
+                </li>
+                <li>
+                  <Link 
+                    to="/blog" 
+                    className="hover:text-white transition-colors duration-200 hover:pl-2 block"
+                  >
+                    Blog
+                  </Link>
+                </li>
+                <li>
+                  <Link 
+                    to="/contact" 
+                    className="hover:text-white transition-colors duration-200 hover:pl-2 block"
+                  >
+                    Contact
+                  </Link>
+                </li>
+                <li>
+                  <Link 
+                    to="/faq" 
+                    className="hover:text-white transition-colors duration-200 hover:pl-2 block"
+                  >
+                    FAQ
+                  </Link>
+                </li>
               </ul>
             </div>
             
+            {/* Colonne 2: Information légales */}
             <div>
-              <h4 className="text-white font-semibold mb-4">Légal</h4>
-              <ul className="space-y-2">
-                <li><Link to="/privacy" className="hover:text-amber-400 transition-colors">Confidentialité</Link></li>
-                <li><Link to="/terms" className="hover:text-amber-400 transition-colors">Conditions d'utilisation</Link></li>
-                <li><Link to="/cookies" className="hover:text-amber-400 transition-colors">Cookies</Link></li>
+              <h4 className="text-white font-bold text-lg mb-6 uppercase tracking-wide">
+                Information légales
+              </h4>
+              <ul className="space-y-3">
+                <li>
+                  <Link 
+                    to="/legal" 
+                    className="hover:text-white transition-colors duration-200 hover:pl-2 block"
+                  >
+                    Mentions légales
+                  </Link>
+                </li>
+                <li>
+                  <Link 
+                    to="/terms" 
+                    className="hover:text-white transition-colors duration-200 hover:pl-2 block"
+                  >
+                    CGU & CGV
+                  </Link>
+                </li>
+                <li>
+                  <Link 
+                    to="/privacy" 
+                    className="hover:text-white transition-colors duration-200 hover:pl-2 block"
+                  >
+                    Politique de confidentialité
+                  </Link>
+                </li>
+                <li>
+                  <Link 
+                    to="/sitemap" 
+                    className="hover:text-white transition-colors duration-200 hover:pl-2 block"
+                  >
+                    Plan du site
+                  </Link>
+                </li>
               </ul>
             </div>
             
+            {/* Colonne 3: Logo et copyright */}
             <div>
-              <h4 className="text-white font-semibold mb-4">Contact</h4>
-              <p className="text-gray-400 mb-2">contact@greencart.fr</p>
-              <p className="text-gray-400">01 23 45 67 89</p>
+              <h3 className="text-3xl font-bold text-white mb-6">
+                GreenCart
+              </h3>
+              <p className="text-[#FFF0B1]/90 mb-8 leading-relaxed">
+                Plateforme développée avec <Heart className="inline w-4 h-4 text-red-400 fill-red-400 mx-1" /> pour un avenir plus durable.
+              </p>
+              
+              {/* Copyright */}
+              <div className="pt-8 border-t border-[#FFF0B1]/20">
+                <p className="text-[#FFF0B1]/80 text-sm">
+                  © 2025 GreenCart. Tous droits réservés.
+                </p>
+              </div>
             </div>
+            
           </div>
           
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-500 text-sm">
-            <p>© {new Date().getFullYear()} GreenCart. Tous droits réservés.</p>
-            <p className="mt-2">
-              <Link to="/sitemap.xml" className="hover:text-amber-400 transition-colors">Plan du site</Link> | 
-              <Link to="/robots.txt" className="hover:text-amber-400 transition-colors ml-2">Robots.txt</Link>
-            </p>
+          {/* Ligne de séparation décorative */}
+          <div className="mt-12 pt-8 border-t border-[#FFF0B1]/10">
+            <div className="text-center text-[#FFF0B1]/60 text-sm">
+              <p>GreenCart - Lutte contre le gaspillage alimentaire depuis 2023</p>
+            </div>
           </div>
         </div>
       </footer>
+
+      {/* Styles CSS pour les animations */}
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .animate-fade-in {
+          animation: fadeIn 0.6s ease-out forwards;
+        }
+      `}</style>
     </div>
   )
 }

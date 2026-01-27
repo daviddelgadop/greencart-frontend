@@ -1,4 +1,3 @@
-// tailwind.config.js
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
@@ -8,18 +7,23 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        'poppins': ['Poppins', 'sans-serif'],
       },
       colors: {
-        // ✅ Couleurs exactes de votre maquette
-        'pale-yellow': '#FFF0B1',
-        'orange-beige': '#D79B65',
+        'pale-yellow': '#fff0b1',
+        'orange-beige': '#d79b65',
         'dark-green': '#508433',
         'medium-brown': '#866545',
-        'dark-brown': '#422A19',
+        'dark-brown': '#422a19',
+        // ✅ VERTS ACCESSIBLES AJOUTÉS
+        'green': {
+          700: '#2F855A',
+          800: '#276749',
+        }
       },
       animation: {
-        'fade-in': 'fadeIn 0.6s ease-out',
+        'fade-in': 'fadeIn 0.5s ease-in-out',
+        'slide-up': 'slideUp 0.3s ease-out',
       },
     },
   },

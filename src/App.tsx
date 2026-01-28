@@ -39,6 +39,9 @@ import ProducersCatalog from './pages/ProducersCatalog'
 import BlogArticleDetail from './pages/BlogArticleDetail'
 import ForgotPassword from './pages/ForgotPassword'
 
+// 🌿 Nouvelle page Producteurs
+import BecomeProducer from './pages/BecomeProducer'
+
 function App() {
   return (
     <AuthProvider>
@@ -68,6 +71,9 @@ function App() {
                 <Route path="/producers" element={<ProducersCatalog />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ForgotPassword />} />
+
+                {/* 🌿 Nouvelle page publique Producteurs */}
+                <Route path="/devenir-producteur" element={<BecomeProducer />} />
 
                 {/* 🔐 Espaces protégés */}
                 <Route

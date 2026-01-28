@@ -9,8 +9,9 @@ import 'react-toastify/dist/ReactToastify.css'
 import { Toaster } from 'react-hot-toast'
 import ScrollToTop from './components/ScrollToTop'
 
-// 🔥 NOUVEAU BANNIÈRE COOKIES RGPD
+// 🍪 Bandeau cookies
 import CookieBanner from './components/CookieBanner'
+import CookieManager from './components/CookieManager'
 
 // Pages
 import Home from './pages/Home'
@@ -68,6 +69,7 @@ function App() {
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ForgotPassword />} />
 
+                {/* 🔐 Espaces protégés */}
                 <Route
                   path="/account/*"
                   element={
@@ -95,6 +97,9 @@ function App() {
                   }
                 />
 
+                {/* 🍪 Page de gestion des cookies */}
+                <Route path="/cookies-settings" element={<CookieManager />} />
+
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Layout>
@@ -107,7 +112,6 @@ function App() {
               hideProgressBar={true}
               newestOnTop={true}
               closeOnClick
-              rtl={false}
               pauseOnFocusLoss={false}
               draggable={false}
               pauseOnHover={false}
@@ -115,7 +119,7 @@ function App() {
               className="text-sm"
             />
 
-            {/* 🍪 Nouveau bandeau cookies RGPD */}
+            {/* 🍪 Bandeau cookies */}
             <CookieBanner />
           </ScrollToTop>
         </Router>

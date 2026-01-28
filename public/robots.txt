@@ -1,5 +1,11 @@
 User-agent: *
-User-agent: *
 Allow: /
 
+Disallow: /admin
+Disallow: /login
+Disallow: /register
+Disallow: /api
+Disallow: /dashboard
+
 Sitemap: https://ias-b3-4-lyon-g4.fr/sitemap.xml
+

@@ -12,13 +12,17 @@ export default {
       colors: {
         'pale-yellow': '#fff0b1',
         'orange-beige': '#d79b65',
-        'dark-green': '#508433',
+
+        // 🌿 NOUVEAU VERT ACCESSIBLE
+        'dark-green': '#3D6627',
+
         'medium-brown': '#866545',
         'dark-brown': '#422a19',
-        // ✅ VERTS ACCESSIBLES AJOUTÉS
+
+        // Optionnel : verts supplémentaires si tu veux
         'green': {
-          700: '#2F855A',
-          800: '#276749',
+          700: '#2F4E1E',   // vert très foncé
+          800: '#1F3A16',   // encore plus profond
         }
       },
       animation: {

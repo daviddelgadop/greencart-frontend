@@ -33,7 +33,6 @@ type Bundle = {
 export default function Home() {
   const [bundles, setBundles] = useState<Bundle[]>([])
   const [loading, setLoading] = useState(true)
-  const [showCookieBanner, setShowCookieBanner] = useState(true)
 
   useEffect(() => {
     let alive = true
@@ -70,27 +69,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen font-poppins">
-
-      {/* Bandeau cookies RGPD */}
-      {showCookieBanner && (
-        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-dark-green text-pale-yellow p-4 rounded-lg shadow-lg flex flex-col sm:flex-row items-center gap-4 z-50">
-          <span>Nous utilisons des cookies pour améliorer votre expérience.</span>
-          <div className="flex gap-2">
-            <button
-              className="bg-orange-beige text-dark-brown px-4 py-2 rounded hover:bg-orange-beige/90 focus:outline-none focus:ring-2 focus:ring-pale-yellow"
-              onClick={() => setShowCookieBanner(false)}
-            >
-              Accepter
-            </button>
-            <button
-              className="border-2 border-pale-yellow text-pale-yellow px-4 py-2 rounded hover:bg-pale-yellow hover:text-dark-green focus:outline-none focus:ring-2 focus:ring-pale-yellow"
-              onClick={() => setShowCookieBanner(false)}
-            >
-              Refuser
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Hero Section */}
 <section className="relative bg-dark-green text-white py-20">

@@ -93,85 +93,100 @@ export default function Home() {
       )}
 
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-r from-dark-green to-medium-brown text-pale-yellow py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div className="animate-fade-in">
-              <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
-                Produits locaux anti-gaspillage – GreenCart
-              </h1>
-              <h2 className="text-2xl md:text-3xl font-semibold mb-6 text-orange-beige">
-                Sauvons ensemble les produits locaux et luttons contre le gaspillage alimentaire
-              </h2>
-              <p className="text-xl mb-8 text-pale-yellow/90">
-                Découvrez des produits locaux de qualité à prix réduits jusqu’à 40 %. 
-                Soutenez les producteurs locaux et participez à la lutte contre le gaspillage alimentaire grâce à GreenCart.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Link
-                  to="/shop"
-                  className="bg-orange-beige text-dark-brown px-8 py-4 rounded-full font-semibold text-lg hover:bg-orange-beige/90 transition-colors flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-pale-yellow"
-                >
-                  Commander dès maintenant
-                  <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </Link>
-                <Link
-                  to="/about"
-                  className="border-2 border-pale-yellow text-pale-yellow px-8 py-4 rounded-full font-semibold text-lg hover:bg-pale-yellow hover:text-dark-green transition-colors text-center focus:outline-none focus:ring-2 focus:ring-orange-beige"
-                >
-                  Découvrir notre mission
-                </Link>
-              </div>
-            </div>
+<section className="relative bg-dark-green text-white py-20">
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+      
+      {/* Texte */}
+      <div className="animate-fade-in">
+        <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight text-white">
+          Produits locaux anti-gaspillage – GreenCart
+        </h1>
 
-            <div className="relative animate-slide-up">
-              <img
-                src="/Home.png"
-                alt="Assortiment de produits locaux frais"
-                className="rounded-2xl shadow-2xl w-full"
-              />
-              <div className="absolute -bottom-6 -left-6 bg-pale-yellow text-dark-green p-4 rounded-xl shadow-lg">
-                <div className="flex items-center space-x-2">
-                  <TrendingDown className="w-6 h-6 text-dark-green" />
-                  <div>
-                    <p className="font-bold text-lg">-40%</p>
-                    <p className="text-sm">en moyenne</p>
-                  </div>
-                </div>
-              </div>
+        <h2 className="text-2xl md:text-3xl font-semibold mb-6 text-pale-yellow">
+          Sauvons ensemble les produits locaux et luttons contre le gaspillage alimentaire
+        </h2>
+
+        <p className="text-xl mb-8 text-pale-yellow/90">
+          Découvrez des produits locaux de qualité à prix réduits jusqu’à 40 %. 
+          Soutenez les producteurs locaux et participez à la lutte contre le gaspillage alimentaire grâce à GreenCart.
+        </p>
+
+        {/* CTA */}
+        <div className="flex flex-col sm:flex-row gap-4">
+          <Link
+            to="/shop"
+            className="bg-pale-yellow text-dark-green px-8 py-4 rounded-full font-semibold text-lg hover:bg-pale-yellow/90 transition-colors flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-white"
+          >
+            Commander dès maintenant
+            <ArrowRight className="ml-2 w-5 h-5 transition-transform group-hover:translate-x-1" />
+          </Link>
+
+          <Link
+            to="/about"
+            className="border-2 border-white text-white px-8 py-4 rounded-full font-semibold text-lg hover:bg-white hover:text-dark-green transition-colors text-center focus:outline-none focus:ring-2 focus:ring-pale-yellow"
+          >
+            Découvrir notre mission
+          </Link>
+        </div>
+      </div>
+
+      {/* Image */}
+      <div className="relative animate-slide-up">
+        <img
+          src="/Home.png"
+          alt="Assortiment de produits locaux frais"
+          className="rounded-2xl shadow-2xl w-full"
+        />
+
+        {/* Badge -40% */}
+        <div className="absolute -bottom-6 -left-6 bg-pale-yellow text-dark-green p-4 rounded-xl shadow-lg">
+          <div className="flex items-center space-x-2">
+            <TrendingDown className="w-6 h-6 text-dark-green" />
+            <div>
+              <p className="font-bold text-lg">-40%</p>
+              <p className="text-sm">en moyenne</p>
             </div>
           </div>
         </div>
-      </section>
+      </div>
+
+    </div>
+  </div>
+</section>
 
       {/* Statistiques */}
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-            <div className="animate-slide-up">
-              <div className="bg-dark-green text-pale-yellow w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Leaf className="w-8 h-8" />
-              </div>
-              <h3 className="text-3xl font-bold text-dark-green mb-2">1,000+</h3>
-              <p className="text-gray-700">Tonnes sauvées du gaspillage</p>
-            </div>
-            <div className="animate-slide-up">
-              <div className="bg-orange-beige text-white w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Users className="w-8 h-8" />
-              </div>
-              <h3 className="text-3xl font-bold text-dark-green mb-2">30+</h3>
-              <p className="text-gray-700">Producteurs partenaires</p>
-            </div>
-            <div className="animate-slide-up">
-              <div className="bg-medium-brown text-pale-yellow w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <ShoppingCart className="w-8 h-8" />
-              </div>
-              <h3 className="text-3xl font-bold text-dark-green mb-2">2,000+</h3>
-              <p className="text-gray-700">Clients satisfaits</p>
-            </div>
-          </div>
+<section className="py-20 bg-white">
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+
+      <div className="animate-slide-up">
+        <div className="bg-dark-green text-pale-yellow w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Leaf className="w-8 h-8" />
         </div>
-      </section>
+        <h3 className="text-3xl font-bold text-dark-green mb-2">1,000+</h3>
+        <p className="text-gray-700">Tonnes sauvées du gaspillage</p>
+      </div>
+
+      <div className="animate-slide-up">
+        <div className="bg-orange-beige text-dark-brown w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Users className="w-8 h-8" />
+        </div>
+        <h3 className="text-3xl font-bold text-dark-green mb-2">30+</h3>
+        <p className="text-gray-700">Producteurs partenaires</p>
+      </div>
+
+      <div className="animate-slide-up">
+        <div className="bg-medium-brown text-pale-yellow w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+          <ShoppingCart className="w-8 h-8" />
+        </div>
+        <h3 className="text-3xl font-bold text-dark-green mb-2">2,000+</h3>
+        <p className="text-gray-700">Clients satisfaits</p>
+      </div>
+
+    </div>
+  </div>
+</section>
 
       {/* Offres du moment */}
       <section className="py-20 bg-pale-yellow/30">
@@ -209,77 +224,100 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Mission */}
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <h2 className="text-3xl md:text-4xl font-bold text-dark-green mb-6">Notre mission : zéro gaspillage</h2>
-              <p className="text-gray-700 text-lg mb-6">
-                GreenCart connecte les consommateurs conscients avec les producteurs locaux pour donner une seconde vie aux produits alimentaires de qualité.
-              </p>
-              <ul className="space-y-4 mb-8">
-                <li className="flex items-center space-x-3">
-                  <div className="w-6 h-6 bg-dark-green rounded-full flex items-center justify-center">
-                    <div className="w-2 h-2 bg-pale-yellow rounded-full"></div>
-                  </div>
-                  <span className="text-gray-700">Produits locaux et de saison</span>
-                </li>
-                <li className="flex items-center space-x-3">
-                  <div className="w-6 h-6 bg-dark-green rounded-full flex items-center justify-center">
-                    <div className="w-2 h-2 bg-pale-yellow rounded-full"></div>
-                  </div>
-                  <span className="text-gray-700">Prix réduits jusqu'à 50%</span>
-                </li>
-                <li className="flex items-center space-x-3">
-                  <div className="w-6 h-6 bg-dark-green rounded-full flex items-center justify-center">
-                    <div className="w-2 h-2 bg-pale-yellow rounded-full"></div>
-                  </div>
-                  <span className="text-gray-700">Soutien aux petits producteurs</span>
-                </li>
-              </ul>
-              <Link
-                to="/about"
-                className="bg-orange-beige text-dark-brown px-6 py-3 rounded-full font-semibold hover:bg-orange-beige/90 transition-colors inline-flex items-center focus:outline-none focus:ring-2 focus:ring-pale-yellow"
-              >
-                En savoir plus
-                <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </Link>
-            </div>
-            <div>
-              <img
-                src="https://images.pexels.com/photos/1327838/pexels-photo-1327838.jpeg?auto=compress&cs=tinysrgb&w=600"
-                alt="Producteur local travaillant sur ses produits"
-                className="rounded-2xl shadow-lg w-full"
-              />
-            </div>
-          </div>
-        </div>
-      </section>
+     {/* Mission */}
+<section className="py-20 bg-white">
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
 
-      {/* CTA Inscription */}
-      <section className="py-20 bg-dark-green text-pale-yellow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-6">Rejoignez le mouvement anti-gaspillage</h2>
-          <p className="text-pale-yellow/90 text-lg mb-8 max-w-2xl mx-auto">
-            Inscrivez-vous dès aujourd'hui et recevez 10€ de réduction sur votre première commande
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              to="/register"
-              className="bg-orange-beige text-dark-brown px-8 py-4 rounded-full font-semibold text-lg hover:bg-orange-beige/90 transition-colors focus:outline-none focus:ring-2 focus:ring-pale-yellow"
-            >
-              Créer mon compte client
-            </Link>
-            <Link
-              to="/register?type=producer"
-              className="border-2 border-pale-yellow text-pale-yellow px-8 py-4 rounded-full font-semibold text-lg hover:bg-pale-yellow hover:text-dark-green transition-colors focus:outline-none focus:ring-2 focus:ring-orange-beige"
-            >
-              Devenir producteur partenaire
-            </Link>
-          </div>
-        </div>
-      </section>
+      <div>
+        <h2 className="text-3xl md:text-4xl font-bold text-dark-green mb-6">
+          Notre mission : zéro gaspillage
+        </h2>
+
+        <p className="text-gray-700 text-lg mb-6">
+          GreenCart connecte les consommateurs conscients avec les producteurs locaux pour donner une seconde vie aux produits alimentaires de qualité.
+        </p>
+
+        <ul className="space-y-4 mb-8">
+          <li className="flex items-center space-x-3">
+            <div className="w-6 h-6 bg-dark-green rounded-full flex items-center justify-center">
+              <div className="w-2 h-2 bg-pale-yellow rounded-full"></div>
+            </div>
+            <span className="text-gray-700">Produits locaux et de saison</span>
+          </li>
+
+          <li className="flex items-center space-x-3">
+            <div className="w-6 h-6 bg-dark-green rounded-full flex items-center justify-center">
+              <div className="w-2 h-2 bg-pale-yellow rounded-full"></div>
+            </div>
+            <span className="text-gray-700">Prix réduits jusqu'à 50%</span>
+          </li>
+
+          <li className="flex items-center space-x-3">
+            <div className="w-6 h-6 bg-dark-green rounded-full flex items-center justify-center">
+              <div className="w-2 h-2 bg-pale-yellow rounded-full"></div>
+            </div>
+            <span className="text-gray-700">Soutien aux petits producteurs</span>
+          </li>
+        </ul>
+
+        {/* CTA corrigé */}
+        <Link
+          to="/about"
+          className="bg-pale-yellow text-dark-green px-6 py-3 rounded-full font-semibold hover:bg-pale-yellow/90 transition-colors inline-flex items-center focus:outline-none focus:ring-2 focus:ring-dark-green"
+        >
+          En savoir plus
+          <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+        </Link>
+      </div>
+
+      <div>
+        <img
+          src="https://images.pexels.com/photos/1327838/pexels-photo-1327838.jpeg?auto=compress&cs=tinysrgb&w=600"
+          alt="Producteur local travaillant sur ses produits"
+          className="rounded-2xl shadow-lg w-full"
+        />
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+     {/* CTA Inscription */}
+<section className="py-20 bg-dark-green text-pale-yellow">
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+
+    <h2 className="text-3xl md:text-4xl font-bold mb-6">
+      Rejoignez le mouvement anti-gaspillage
+    </h2>
+
+    <p className="text-pale-yellow/90 text-lg mb-8 max-w-2xl mx-auto">
+      Inscrivez-vous dès aujourd'hui et recevez 10€ de réduction sur votre première commande
+    </p>
+
+    <div className="flex flex-col sm:flex-row gap-4 justify-center">
+
+      {/* CTA principal corrigé */}
+      <Link
+        to="/register"
+        className="bg-pale-yellow text-dark-green px-8 py-4 rounded-full font-semibold text-lg hover:bg-pale-yellow/90 transition-colors focus:outline-none focus:ring-2 focus:ring-white"
+      >
+        Créer mon compte client
+      </Link>
+
+      {/* CTA secondaire (déjà parfait) */}
+      <Link
+        to="/register?type=producer"
+        className="border-2 border-pale-yellow text-pale-yellow px-8 py-4 rounded-full font-semibold text-lg hover:bg-pale-yellow hover:text-dark-green transition-colors focus:outline-none focus:ring-2 focus:ring-orange-beige"
+      >
+        Devenir producteur partenaire
+      </Link>
+
+    </div>
+  </div>
+</section>
+
 
     </div>
   )

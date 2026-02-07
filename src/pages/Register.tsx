@@ -66,6 +66,12 @@ export default function Register() {
     type: defaultType,
     public_display_name: '',
     acceptTerms: false,
+    // Producteur
+  siret: '',
+  company_proof: null as File | null,
+  company_type: '',
+  legalDeclaration: false,
+    
   })
 
   const [showPassword, setShowPassword] = useState(false)
@@ -132,6 +138,7 @@ export default function Register() {
         formData.type,
         formData.date_of_birth,
         formData.public_display_name
+        
       )
       setSuccess('Compte créé. Si la vérification est requise, veuillez consulter votre email.')
       // navigate('/login')
@@ -176,6 +183,88 @@ export default function Register() {
                 <option value="producer">Producteur</option>
               </select>
             </div>
+           {formData.type === "producer" && (
+  <>
+    {/* SIRET */}
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        Numéro SIRET *
+      </label>
+      <input
+        type="text"
+        name="siret"
+        maxLength={14}
+        required
+        onChange={handleInputChange}
+        className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+        placeholder="12345678901234"
+      />
+    </div>
+
+    {/* Justificatif officiel */}
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        Justificatif professionnel (Kbis, MSA…) *
+      </label>
+      <input
+        type="file"
+        name="company_proof"
+        accept=".pdf,.jpg,.jpeg,.png"
+        required
+        onChange={(e) =>
+          setFormData(prev => ({
+            ...prev,
+            company_proof: e.target.files ? e.target.files[0] : null,
+          }))
+        }
+        className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+      />
+    </div>
+
+    {/* Type de société */}
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        Type de société *
+      </label>
+      <select
+        name="company_type"
+        value={formData.company_type || ""}
+        onChange={handleInputChange}
+        required
+        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-green focus:border-transparent"
+      >
+        <option value="">Sélectionnez</option>
+        <option value="micro">Micro-entreprise</option>
+        <option value="sas">SAS</option>
+        <option value="sarl">SARL</option>
+        <option value="auto">Auto-entrepreneur</option>
+      </select>
+    </div>
+
+    {/* Déclaration de conformité */}
+    <div className="flex items-start mt-2">
+      <input
+        id="legalDeclaration"
+        name="legalDeclaration"
+        type="checkbox"
+        checked={formData.legalDeclaration || false}
+        onChange={(e) =>
+          setFormData(prev => ({
+            ...prev,
+            legalDeclaration: e.target.checked,
+          }))
+        }
+        className="mt-1 w-4 h-4 text-dark-green focus:ring-dark-green border-gray-300 rounded"
+        required
+      />
+      <label htmlFor="legalDeclaration" className="ml-2 text-sm text-gray-600">
+        Je certifie que mes produits sont conformes aux normes légales et sanitaires *
+      </label>
+    </div>
+  </>
+)}
+
+
 
             <div>
               <label htmlFor="first_name" className="block text-sm font-medium text-gray-700 mb-2">

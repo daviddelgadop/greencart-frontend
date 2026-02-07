@@ -18,9 +18,15 @@ export default function BecomeProducer() {
             et développez vos ventes grâce à une plateforme engagée.
           </p>
 
+          {/* Ajout demandé par le jury */}
+          <p className="text-pale-yellow/90 max-w-3xl text-lg mt-4">
+            Pour garantir la conformité légale, un numéro SIRET et un justificatif professionnel
+            seront demandés lors de l’inscription.
+          </p>
+
           <Link
             to="/register?type=producer"
-            className="inline-flex items-center mt-8 bg-orange-beige text-dark-brown px-8 py-4 rounded-full font-semibold text-lg hover:bg-orange-beige/90 transition"
+            className="inline-flex items-center mt-8 bg-pale-yellow text-dark-green px-8 py-4 rounded-full font-semibold text-lg hover:bg-pale-yellow/90 transition"
           >
             Rejoindre GreenCart
             <ArrowRight className="ml-2 w-5 h-5" />
@@ -103,7 +109,7 @@ export default function BecomeProducer() {
 
           <Link
             to="/register?type=producer"
-            className="bg-orange-beige text-dark-brown px-8 py-4 rounded-full font-semibold text-lg hover:bg-orange-beige/90 transition"
+            className="bg-pale-yellow text-dark-green px-8 py-4 rounded-full font-semibold text-lg hover:bg-pale-yellow/90 transition"
           >
             Devenir producteur
           </Link>
